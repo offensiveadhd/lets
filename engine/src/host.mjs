@@ -113,11 +113,16 @@ export class Host {
     if (p.startsWith('/uploads/')) return this._static(res, DIRS.uploads, decodeURIComponent(p.slice(9)));
     if (p.startsWith('/u/')) {
       const [, , name, ...rest] = p.split('/');
-      const u = this.registry.get(name);
-      if (!u || !u.ok) return this._json(res, 404, { error: `unknown unique "${name}"` });
+      let u = this.registry.get(name);
+      if (!u || !u.ok) { this.registry.refresh(); u = this.registry.get(name); }   // a unique added since start
+      if (!u || !u.ok) return this._json(res, 404, { error: `unknown unique "${name}"`, problems: u?.problems });
       if (rest.length === 0) { res.writeHead(302, { location: `/u/${name}/${url.hash || ''}` }); return res.end(); }
       const sub = rest.join('/');
       if (sub === '' || sub === 'index.html') return this._static(res, u.dir, path.relative(u.dir, u.entry));
+      // relative URLs in the entry page resolve against the entry's folder first (ui/…), then the unique root
+      const entryDir = path.dirname(path.relative(u.dir, u.entry));
+      const inEntryDir = path.join(entryDir, sub);
+      if (entryDir !== '.' && fs.existsSync(path.resolve(u.dir, inEntryDir)) && isInside(u.dir, path.resolve(u.dir, inEntryDir))) return this._static(res, u.dir, inEntryDir);
       return this._static(res, u.dir, sub);
     }
     return this._json(res, 404, { error: 'not found' });
