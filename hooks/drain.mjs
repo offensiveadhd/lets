@@ -40,7 +40,8 @@ async function main() {
       if (err?.cause?.code === 'ECONNREFUSED') { try { fs.unlinkSync(file); } catch { /* ignore */ } }
     } finally { clearTimeout(t); }
   }
-  if (blocks.length) process.stdout.write(blocks.join('\n\n') + '\n');
+  // stdout to a pipe is asynchronous on Windows: never process.exit() right after writing
+  if (blocks.length) await new Promise((resolve) => process.stdout.write(blocks.join('\n\n') + '\n', resolve));
 }
 
-main().catch(() => {}).finally(() => process.exit(0));
+main().catch(() => {}).finally(() => { process.exitCode = 0; });
