@@ -1,0 +1,10 @@
+{
+  "name": "lets",
+  "version": "0.1.0",
+  "description": "Talk to Claude through rich interactive windows (uniques) with a companion entity that learns you. /lets:lets graph opens a dark-violet graph board where you draw flows and ideas while chatting; a LIP protocol and a git store let anyone build and share new mediums.",
+  "author": { "name": "TikoTikTok", "url": "https://github.com/TikoTikTok" },
+  "homepage": "https://github.com/TikoTikTok/lets",
+  "repository": "https://github.com/TikoTikTok/lets",
+  "license": "MIT",
+  "keywords": ["lets", "graph", "companion", "interactive", "lip", "mcp", "uniques"]
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lets.dev/schemas/lip/1/envelope.json",
+  "title": "LIP envelope",
+  "type": "object",
+  "required": ["lip", "id", "ts", "dir", "from", "type"],
+  "properties": {
+    "lip": { "type": "integer", "const": 1 },
+    "id": { "type": "string", "pattern": "^(ev|cm|ak)_[A-Za-z0-9]{8,32}$" },
+    "ts": { "type": "integer", "minimum": 0 },
+    "dir": { "type": "string", "enum": ["up", "down"] },
+    "from": { "type": "string", "pattern": "^(unique:[a-z][a-z0-9-]{1,31}#[A-Za-z0-9_-]{1,32}|claude|host|hook)$" },
+    "type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,4}$" },
+    "data": {},
+    "re": { "type": "string" },
+    "ttl": { "type": "integer", "minimum": 0 },
+    "to": { "type": "string" },
+    "seq": { "type": "integer", "minimum": 0 },
+    "done": { "type": "boolean" },
+    "ack": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}
