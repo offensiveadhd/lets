@@ -1,0 +1,5 @@
+{
+  "description": "lets-native: /lets alias and live pane",
+  "modules": ["./register.tsx"],
+  "hooks": {}
+}

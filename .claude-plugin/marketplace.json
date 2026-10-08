@@ -10,6 +10,13 @@
       "source": "./",
       "category": "productivity",
       "tags": ["graph", "companion", "interactive", "protocol"]
+    },
+    {
+      "name": "lets-native",
+      "description": "Optional native touches (Claude Code 2.1.287+): a bare /lets alias and a live /lets-pane showing windows, the companion's mood and the latest window events.",
+      "source": "./mods/lets-native",
+      "category": "productivity",
+      "tags": ["lets", "pane", "mod"]
     }
   ]
 }
