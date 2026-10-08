@@ -29,6 +29,17 @@ for (let i = 0; i < rest.length; i++) {
 
 const print = (o) => console.log(typeof o === 'string' ? o : JSON.stringify(o, null, 2));
 
+/** The newest live host run file (optionally on a given port). */
+function findHost(port) {
+  ensureDirs();
+  const runs = fs.readdirSync(DIRS.run).filter((f) => f.startsWith('host-')).map((f) => ({ file: path.join(DIRS.run, f), ...readJson(path.join(DIRS.run, f), {}) }))
+    .filter((r) => r.port && (!port || Number(r.port) === Number(port))).sort((a, b) => (b.started || 0) - (a.started || 0));
+  for (const r of runs) {
+    try { process.kill(r.pid, 0); return r; } catch { try { fs.unlinkSync(r.file); } catch { /* ignore */ } }
+  }
+  return null;
+}
+
 switch (cmd) {
   case 'serve': {
     const log = makeLogger('cli');
@@ -62,6 +73,33 @@ switch (cmd) {
     process.exit(bad ? 1 : 0);
   }
   case 'uniques': { ensureDirs(); print(new Registry().list()); break; }
+  case 'url': {
+    // print a window URL for a running host:  lets url <unique> [--port N] [--window ID]
+    const run = findHost(flags.port);
+    if (!run) { print('no running host (start one with: lets serve)'); process.exit(1); }
+    const w = flags.window || `w${Date.now().toString(36)}`;
+    print(`http://127.0.0.1:${run.port}/u/${positional[0] || 'graph'}/#w=${w}&t=${run.token}`);
+    break;
+  }
+  case 'send': {
+    // send a down-command to a running host:  lets send <type> ['{"json":"data"}'] [--to W] [--port N]
+    const run = findHost(flags.port);
+    if (!run) { print('no running host'); process.exit(1); }
+    const [type, json = '{}'] = positional;
+    const res = await fetch(`http://127.0.0.1:${run.port}/lip/command${flags.to ? `?to=${encodeURIComponent(flags.to)}` : ''}`, {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-lets-token': run.token }, body: JSON.stringify({ type, data: JSON.parse(json) }),
+    });
+    print(await res.json());
+    break;
+  }
+  case 'events': {
+    // drain pending events from a running host:  lets events [--cursor NAME] [--port N]
+    const run = findHost(flags.port);
+    if (!run) { print('no running host'); process.exit(1); }
+    const res = await fetch(`http://127.0.0.1:${run.port}/lip/drain?cursor=${encodeURIComponent(flags.cursor || 'cli')}&max=100`, { headers: { 'x-lets-token': run.token } });
+    print(await res.json());
+    break;
+  }
   case 'entity': { ensureDirs(); print(new Entity().brief()); break; }
   case 'install-skill': {
     const dest = path.join(os.homedir(), '.claude', 'skills', 'lets');

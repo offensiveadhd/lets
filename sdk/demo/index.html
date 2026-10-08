@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>lets · shell demo</title>
+  <link rel="stylesheet" href="/sdk/lets-shell.css">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { overflow: hidden; color: var(--lets-fg); font-family: var(--lets-font); }
+    .hero { position: fixed; inset: 0; display: grid; place-content: center; gap: 4px; text-align: center; color: var(--lets-fg-dim); font-size: 14px; pointer-events: none; user-select: none; }
+    .hero h1 { margin: 0 0 8px; color: var(--lets-fg); font-size: 30px; font-weight: 650; letter-spacing: .02em; }
+    .hero h1 span { color: var(--lets-accent); text-shadow: var(--lets-glow); }
+    .hero p { margin: 0; }
+    .hero kbd { padding: 1px 6px; border: 1px solid var(--lets-line); border-radius: 5px; color: var(--lets-fg); font: 12px var(--lets-mono); }
+    /* demo control panel (rendered by the shell as a `panel` component) */
+    .lets-demo, .lets-demo-row { display: flex; flex-direction: column; gap: 6px; }
+    .lets-demo { gap: 14px; }
+    .lets-demo-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  </style>
+  <!--
+    The host serves pages with CSP script-src 'self', so this page has no inline
+    script: `?demo` makes the shell module boot the demo itself. Opened by the host
+    (#w=…&t=… in the URL) it talks to the real host; opened directly it runs on an
+    offline loopback that echoes like a tiny fake Claude.
+    Debug handles: window.__shell, window.__lets, window.__cmd(type, data, extra).
+  -->
+  <script type="module" src="/sdk/lets-shell.js?demo"></script>
+</head>
+<body class="lets-grid-bg">
+  <main class="hero">
+    <h1>lets <span>shell</span></h1>
+    <p>An empty canvas. <kbd>right-click</kbd> or <kbd>Ctrl+Space</kbd> summons or dismisses the companion.</p>
+    <p>Click it for suggestions · <kbd>Ctrl+/</kbd> chat · paste or drop an image anywhere · <kbd>Esc</kbd> closes menus</p>
+    <noscript><p>This demo needs JavaScript.</p></noscript>
+  </main>
+</body>
+</html>
