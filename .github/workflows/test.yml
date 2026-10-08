@@ -10,6 +10,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         node: [20, 22]
+    env:
+      LETS_HOME: ${{ runner.temp }}/lets-home
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +20,4 @@ jobs:
       - run: node --test tests/unit.test.mjs
       - run: node tests/mcp-smoke.mjs
       - run: node tests/hook-drain.mjs
-        env:
-          LETS_HOME: ${{ runner.temp }}/lets-home
       - run: node engine/bin/lets.mjs validate
