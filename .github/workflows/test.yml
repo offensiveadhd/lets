@@ -17,6 +17,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: node --test tests/unit.test.mjs
       - run: node tests/mcp-smoke.mjs
+      - run: node tests/hook-drain.mjs
         env:
           LETS_HOME: ${{ runner.temp }}/lets-home
       - run: node engine/bin/lets.mjs validate

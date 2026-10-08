@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lets-host",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["engine/bin/lets.mjs", "serve", "--port", "47801", "--verbose"],
+      "port": 47801
+    }
+  ]
+}
