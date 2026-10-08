@@ -1,0 +1,15 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-marketplace.json",
+  "name": "lets",
+  "description": "lets — talk to Claude through interactive windows: a graph board with a companion entity, the LIP protocol, and a store for community-made mediums.",
+  "owner": { "name": "TikoTikTok", "url": "https://github.com/TikoTikTok" },
+  "plugins": [
+    {
+      "name": "lets",
+      "description": "The lets engine: /lets:lets <unique> opens an interactive window (graph board first), MCP tools to listen/react, a companion entity that learns you, model routing, and a git store for uniques.",
+      "source": "./",
+      "category": "productivity",
+      "tags": ["graph", "companion", "interactive", "protocol"]
+    }
+  ]
+}

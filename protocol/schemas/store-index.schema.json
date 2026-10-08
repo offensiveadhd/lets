@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lets.dev/schemas/lip/1/store-index.json",
+  "title": "lets store index",
+  "type": "object",
+  "required": ["lip", "store", "uniques"],
+  "properties": {
+    "lip": { "type": "integer", "const": 1 },
+    "store": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+    "description": { "type": "string" },
+    "updated": { "type": "string" },
+    "uniques": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "repo"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "repo": { "type": "string", "pattern": "^(https://|git@|ssh://)" },
+          "path": { "type": "string", "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9_./-]*$" },
+          "ref": { "type": "string" },
+          "sha": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+          "manifestSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "verified": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "author": { "type": "string" }
+        }
+      }
+    }
+  }
+}
