@@ -100,6 +100,7 @@ export class Host {
       if (p === '/lip/event' && req.method === 'POST') return this._event(req, res, url);
       if (p === '/lip/upload' && req.method === 'POST') return this._upload(req, res, url);
       if (p === '/lip/drain' && req.method === 'GET') return this._drain(res, url);
+      if (p === '/lip/command' && req.method === 'POST') return this._command(req, res, url);
       if (p === '/lip/persona' && req.method === 'GET') return this._json(res, 200, this.entity ? this.entity.personaForShell() : {});
       if (p === '/lip/windows' && req.method === 'GET') return this._json(res, 200, this.bus.windowList());
       return this._json(res, 404, { error: 'unknown lip endpoint' });
@@ -196,6 +197,17 @@ export class Host {
     this.uploads.push(info);
     this.bus.push({ lip: 1, id: rid('ev'), ts: Date.now(), dir: 'up', from: `unique:${unique}#${w}`, type: isImage ? 'media.image' : 'media.file', data: info });
     this._json(res, 200, info);
+  }
+
+  /** Down-commands over HTTP (for the CLI and debugging; Claude uses the MCP `send` tool). */
+  async _command(req, res, url) {
+    const body = await readBody(req, MAX_EVENT_BODY);
+    let cmds;
+    try { cmds = JSON.parse(body); } catch { return this._json(res, 400, { error: 'bad json' }); }
+    const list = Array.isArray(cmds) ? cmds : [cmds];
+    const to = url.searchParams.get('to') || undefined;
+    const results = list.filter((c) => c && typeof c.type === 'string').map((c) => this.bus.send({ type: c.type, data: c.data ?? {}, ttl: c.ttl, from: c.from || 'host' }, c.to || to));
+    this._json(res, 200, { results });
   }
 
   _drain(res, url) {

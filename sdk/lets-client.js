@@ -88,7 +88,7 @@ export class Lets {
         unique: this.unique,
         version: this.version,
         caps: this.caps,
-        viewport: { w: innerWidth, h: innerHeight },
+        viewport: { w: innerWidth || document.documentElement.clientWidth, h: innerHeight || document.documentElement.clientHeight },
         ua: navigator.userAgent.slice(0, 80),
       });
     };
