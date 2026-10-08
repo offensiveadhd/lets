@@ -9,6 +9,11 @@
 
 ---
 
+<p align="center">
+  <img src="assets/screenshot-graph.jpg" width="640" alt="The graph board: nodes added by the human and by Claude, a sticky annotation, tree layout, companion bottom-right">
+  <br><sub>The graph board after a short back-and-forth: two nodes drawn by hand, the rest added by Claude (a data node, a decision, an annotation, a tree layout).</sub>
+</p>
+
 ## What it is
 
 `lets` is a Claude Code plugin with three layers:
@@ -99,10 +104,16 @@ tests/            node --test
 ```bash
 npm test                                  # unit tests
 node tests/mcp-smoke.mjs                  # full stdio ↔ host ↔ window round trip
-node engine/bin/lets.mjs serve --open graph --verbose
+node tests/hook-drain.mjs                 # the prompt hook against a live host
+node engine/bin/lets.mjs serve --open graph --verbose     # standalone host, prints every event
+node engine/bin/lets.mjs url graph                        # a window URL for the running host
+node engine/bin/lets.mjs send graph.node.add '{"label":"Cache","kind":"data"}'   # play Claude by hand
+node engine/bin/lets.mjs events                           # drain what the human did
 claude plugin validate .
 claude --plugin-dir .                     # try the plugin in a session
 ```
+
+Tip for the app's browser pane: open the window URL once with its `#w=…&t=…` hash; a hash-only navigation does not reload the page, so after a host restart navigate elsewhere first.
 
 State lives in `~/.lets/` (uploads, entity, router ledger, installed uniques, logs). Delete it to start fresh.
 
