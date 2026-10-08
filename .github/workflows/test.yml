@@ -11,7 +11,7 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         node: [20, 22]
     env:
-      LETS_HOME: ${{ runner.temp }}/lets-home
+      LETS_HOME: ${{ github.workspace }}/.lets-home
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
