@@ -1,6 +1,6 @@
 {
   "name": "lets",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Talk to Claude through rich interactive windows (uniques) with a companion entity that learns you. /lets:lets graph opens a dark-violet graph board where you draw flows and ideas while chatting; a LIP protocol and a git store let anyone build and share new mediums.",
   "author": { "name": "TikoTikTok", "url": "https://github.com/TikoTikTok" },
   "homepage": "https://github.com/TikoTikTok/lets",

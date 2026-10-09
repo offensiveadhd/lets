@@ -28,10 +28,16 @@ client sets with pending queues (commands sent before the window connects are
 delivered on attach, unless their `ttl` expired), ack tracking, and coalescing
 of chatty types (`graph.changed`, `entity.profile`) that no reader has seen.
 
-**engine/src/registry.mjs** — discovers uniques in `uniques/` (bundled),
-`~/.lets/uniques` (installed), `<project>/.lets/uniques` (local), validates
-`unique.json` against `protocol/schemas/unique.schema.json` plus the safety
-rules (entry inside folder, no reserved domains, declared domains only).
+**engine/src/registry.mjs** — discovers uniques in `uniques/` (bundled, empty),
+`~/.lets/uniques` (defaults + store installs), `LETS_UNIQUES_DIRS` (extra
+folders), `<project>/.lets/uniques` (local); validates `unique.json` against
+`protocol/schemas/unique.schema.json` plus the safety rules (entry inside
+folder, no reserved domains, declared domains only).
+
+**engine/src/defaults.mjs** — the uniques every installation gets
+(`defaults.json`: graph today). Missing ones are cloned into `~/.lets/uniques`
+in the background when the engine starts, on demand when `open` names one, by
+`lets defaults`, and by `install.mjs`. Trusted by the list, still validated.
 
 **engine/src/entity.mjs** — persona + profile + memory + skills on disk.
 `brief()` is what Claude sees on every `open` (kept small on purpose).

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>mini</title><link rel="stylesheet" href="/sdk/lets-shell.css"></head>
+<body data-unique="mini">
+<main>mini</main>
+<script type="module">
+  import { Lets } from '/sdk/lets-client.js';
+  import { Shell } from '/sdk/lets-shell.js';
+  const lets = Lets.connect({ unique: 'mini', version: '0.0.1', caps: ['entity', 'chat'] });
+  Shell.mount(lets, { root: document.body });
+  lets.on('mini.snapshot', () => lets.emitNow('mini.snapshot', { ok: true }));
+</script>
+</body>
+</html>

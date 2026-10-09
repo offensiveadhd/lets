@@ -79,3 +79,11 @@ Human acts → `component.action { id, action: "pick"|"change"|"submit"|"added"|
 { "action": "inspect", "name": "https://github.com/someone/lets-unique-foo.git", "path": "", "ref": "main" }
 { "action": "add_store", "name": "my-store", "repo": "https://github.com/me/my-lets-store.git" }
 ```
+
+## uniques
+```json
+{ "action": "list" }
+{ "action": "info", "name": "graph" }
+{ "action": "defaults" }             // install missing default uniques (graph) from git
+{ "action": "defaults", "name": "graph", "force": true }
+```

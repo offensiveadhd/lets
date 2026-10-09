@@ -1,0 +1,13 @@
+{
+  "$comment": "Uniques the engine installs into ~/.lets/uniques on first use when they are missing. Trusted by this list; still validated against the LIP manifest rules before being served. Set LETS_NO_DEFAULTS=1 to skip.",
+  "lip": 1,
+  "uniques": [
+    {
+      "name": "graph",
+      "title": "Graph — talk in diagrams",
+      "repo": "https://github.com/TikoTikTok/lets-unique-graph.git",
+      "path": "",
+      "ref": "main"
+    }
+  ]
+}

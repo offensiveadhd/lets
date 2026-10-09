@@ -76,8 +76,8 @@ test('entity: persona persists, learns, teaches skills', () => {
   assert.equal(slug('Hello World!'), 'hello-world');
 });
 
-test('registry: bundled graph unique validates; escaping entry is rejected', () => {
-  const r = inspectUnique(path.join(PLUGIN_ROOT, 'uniques', 'graph'));
+test('registry: the fixture unique validates; escaping entry is rejected', () => {
+  const r = inspectUnique(path.join(PLUGIN_ROOT, 'tests', 'fixtures', 'uniques', 'mini'));
   assert.equal(r.ok, true, r.problems.join('; '));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lets-u-'));
   fs.writeFileSync(path.join(dir, 'unique.json'), JSON.stringify({ lip: 1, name: 'evil', version: '0.0.1', title: 'x', entry: '../x.html', domains: ['chat'] }));

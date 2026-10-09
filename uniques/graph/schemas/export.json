@@ -1,9 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "graph.export / graph.snapshot (event)",
-  "type": "object",
-  "required": ["graph"],
-  "properties": {
-    "graph": { "$ref": "graph.schema.json" }
-  }
-}

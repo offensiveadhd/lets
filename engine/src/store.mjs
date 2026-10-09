@@ -139,6 +139,8 @@ export class Store {
   }
 
   listInstalled() { return Object.entries(this.installed).map(([name, r]) => ({ name, ...r })); }
+
+  saveInstalled() { writeJson(this.installedFile, this.installed); }
 }
 
 function walk(dir, out = []) {

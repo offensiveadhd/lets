@@ -74,12 +74,18 @@ Under ~1,200 words. It is the most important file you write.
 ## 5. Develop
 
 ```bash
-# option a: project-local
+# option a: any folder — point the registry at the PARENT of your unique folders
+LETS_UNIQUES_DIRS=/path/to/parent node engine/bin/lets.mjs serve --open my-unique --verbose
+# option b: project-local
 mkdir -p .lets/uniques && ln -s /path/to/my-unique .lets/uniques/my-unique
-node engine/bin/lets.mjs serve --open my-unique --verbose
-# option b: user-wide
+# option c: user-wide (where defaults and store installs live)
 cp -r my-unique ~/.lets/uniques/
 ```
+
+The reference implementation is **graph** (https://github.com/TikoTikTok/lets-unique-graph):
+read its `CONTRACT.md`, `GUIDE.md` and `ui/graph.js` to see every part of the
+contract in use. Uniques listed in the engine's `defaults.json` are installed for
+everyone on first use; propose one there once it is solid.
 
 `--verbose` prints every up-event; use the companion's chat to simulate
 Claude, or run the real thing: `claude --plugin-dir /path/to/lets` then

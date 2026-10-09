@@ -1,0 +1,15 @@
+{
+  "lip": 1,
+  "name": "mini",
+  "version": "0.0.1",
+  "title": "Mini — test fixture",
+  "description": "The smallest valid unique; used by the engine's tests.",
+  "entry": "ui/index.html",
+  "guide": "GUIDE.md",
+  "domains": ["mini"],
+  "capabilities": ["entity", "chat"],
+  "events": { "mini.ping": { "summary": "test ping" }, "mini.snapshot": { "summary": "reply to mini.snapshot" } },
+  "commands": { "mini.snapshot": { "summary": "ask for a snapshot" } },
+  "permissions": { "fs.write": ["uploads"], "net": [] },
+  "license": "MIT"
+}

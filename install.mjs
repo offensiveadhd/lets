@@ -80,6 +80,13 @@ if (!args.has('--no-skill') && !args.has('--native')) {
   console.log('\n(skipping the personal /lets alias: lets-native provides /lets itself)');
 }
 
+step('default uniques (graph, …)');
+{
+  const r = spawnSync(process.execPath, [path.join(root, 'engine', 'bin', 'lets.mjs'), 'defaults'], { encoding: 'utf8' });
+  console.log((r.stdout || r.stderr || '').trim().split('\n').map((l) => '  ' + l).join('\n'));
+  if (r.status !== 0) console.log('  (could not install a default unique now; the engine retries on first use — needs git and access to the repo)');
+}
+
 step('verify');
 run(claude, ['plugin', 'list'], { ok: () => true });
 

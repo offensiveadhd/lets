@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0 — 2026-10-10
+
+- **Uniques are separate repositories.** `graph` moved to
+  https://github.com/TikoTikTok/lets-unique-graph (history preserved); the
+  engine ships no unique.
+- **Default uniques.** `defaults.json` lists the mediums every install gets;
+  the engine clones missing ones into `~/.lets/uniques` on first start, on
+  demand when `open` names one, via `lets defaults`, and from `install.mjs`.
+  `LETS_NO_DEFAULTS=1` opts out. `uniques {action:"defaults"}` tool action.
+- `LETS_UNIQUES_DIRS` (path-separated) adds folders to the registry for
+  developing uniques anywhere.
+- Tests run against a bundled fixture unique (`tests/fixtures/uniques/mini`).
+- Store index: graph points at its repo; pulse (template) listed.
+
 ## 0.2.0 — 2026-10-10
 
 Fixes from the first real session on the graph board.

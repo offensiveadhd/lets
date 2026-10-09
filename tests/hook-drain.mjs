@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 process.env.LETS_HOME = process.env.LETS_HOME || fs.mkdtempSync(path.join(os.tmpdir(), 'lets-hook-'));
+process.env.LETS_NO_DEFAULTS = '1';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { createEngine } = await import('../engine/src/engine.mjs');
 const engine = await createEngine({ log: () => {} });
