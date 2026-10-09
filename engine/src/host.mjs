@@ -101,6 +101,7 @@ export class Host {
       if (p === '/lip/upload' && req.method === 'POST') return this._upload(req, res, url);
       if (p === '/lip/drain' && req.method === 'GET') return this._drain(res, url);
       if (p === '/lip/command' && req.method === 'POST') return this._command(req, res, url);
+      if (p === '/lip/listen' && req.method === 'GET') return this._listen(res, url);
       if (p === '/lip/persona' && req.method === 'GET') return this._json(res, 200, this.entity ? this.entity.personaForShell() : {});
       if (p === '/lip/windows' && req.method === 'GET') return this._json(res, 200, this.bus.windowList());
       return this._json(res, 404, { error: 'unknown lip endpoint' });
@@ -155,6 +156,7 @@ export class Host {
     const hello = { lip: 1, id: rid('cm'), ts: Date.now(), dir: 'down', from: 'host', type: 'lip.hello', data: { windowId: w, unique, version: this.registry.get(unique)?.manifest?.version, caps: this.registry.get(unique)?.manifest?.capabilities || [], hostVersion: VERSION } };
     this.bus._write(res, hello);
     if (this.entity) this.bus._write(res, { lip: 1, id: rid('cm'), ts: Date.now(), dir: 'down', from: 'host', type: 'entity.persona', data: this.entity.personaForShell() });
+    this.bus._write(res, { lip: 1, id: rid('cm'), ts: Date.now(), dir: 'down', from: 'host', type: 'session.listening', data: { on: this.bus.listening, at: Date.now() } });
     if (!win._announced) {
       win._announced = true;
       this.bus.push({ lip: 1, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.opened', data: { windowId: w, unique } });
@@ -213,6 +215,17 @@ export class Host {
     const to = url.searchParams.get('to') || undefined;
     const results = list.filter((c) => c && typeof c.type === 'string').map((c) => this.bus.send({ type: c.type, data: c.data ?? {}, ttl: c.ttl, from: c.from || 'host' }, c.to || to));
     this._json(res, 200, { results });
+  }
+
+  /** Blocking read over HTTP (for the CLI and tests): same semantics as the MCP `listen` tool. */
+  async _listen(res, url) {
+    const cursor = url.searchParams.get('cursor') || 'claude';
+    const waitMs = Math.min(Number(url.searchParams.get('wait_ms') || 0), 100_000);
+    const max = Math.min(Number(url.searchParams.get('max') || 50), 200);
+    if (cursor === 'claude') this.bus.touchListening(waitMs > 0 ? 8000 : 3000);
+    const got = await this.bus.wait(cursor, waitMs);
+    const r = this.bus.read(cursor, { max });
+    this._json(res, 200, { ...r, timedOut: waitMs > 0 && !got && r.events.length === 0, windows: this.bus.windowList() });
   }
 
   _drain(res, url) {

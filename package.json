@@ -1,6 +1,6 @@
 {
   "name": "lets",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "lets — an engine for talking to Claude through rich interactive windows (uniques), with a companion entity, a shareable protocol (LIP) and a git-based store.",
   "type": "module",
   "private": true,

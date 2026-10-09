@@ -62,7 +62,7 @@ export class Bus {
   windowList() {
     return [...this.windows.values()].map((w) => ({
       id: w.id, unique: w.unique, connected: w.clients.size > 0, ready: !!w.ready,
-      viewport: w.ready?.viewport, opened: w.opened, lastSeen: w.lastSeen,
+      viewport: w.ready?.viewport, opened: w.opened, lastSeen: w.lastSeen, listening: this.listening,
     }));
   }
 
@@ -133,10 +133,37 @@ export class Bus {
   wait(cursor = 'claude', waitMs = 0) {
     if (this.peekCount(cursor) > 0 || waitMs <= 0) return Promise.resolve(true);
     return new Promise((resolve) => {
-      const w = { resolve: () => { clearTimeout(w.timer); this.waiters.delete(w); resolve(true); } };
-      w.timer = setTimeout(() => { this.waiters.delete(w); resolve(false); }, waitMs);
+      const w = { cursor, resolve: () => { clearTimeout(w.timer); this.waiters.delete(w); this._listening(); resolve(true); } };
+      w.timer = setTimeout(() => { this.waiters.delete(w); this._listening(); resolve(false); }, waitMs);
       this.waiters.add(w);
+      this._listening();
     });
+  }
+
+  /**
+   * Whether Claude is blocked in `listen` right now (a waiter on the `claude`
+   * cursor). Windows are told on every flip (`session.listening {on}`) so the
+   * shell can show "Pip is listening" vs "away", and `touchListening()` keeps
+   * `on` true for a grace period after each listen call so a tight loop of
+   * short polls still reads as attentive.
+   */
+  get listening() {
+    return [...this.waiters].some((w) => w.cursor === 'claude') || Date.now() < (this.listenGraceUntil || 0);
+  }
+
+  touchListening(graceMs = 8000) {
+    this.listenGraceUntil = Date.now() + graceMs;
+    this._listening();
+    clearTimeout(this._graceTimer);
+    this._graceTimer = setTimeout(() => this._listening(), graceMs + 50);
+    this._graceTimer.unref?.();
+  }
+
+  _listening() {
+    const on = this.listening;
+    if (on === this._lastListening) return;
+    this._lastListening = on;
+    this.send({ type: 'session.listening', data: { on, at: Date.now() }, from: 'host', transient: true });
   }
 
   // ---- down (commands) --------------------------------------------------------
@@ -148,10 +175,12 @@ export class Bus {
   send(cmd, to) {
     const msg = { lip: LIP, id: cmd.id || rid('cm'), ts: Date.now(), dir: 'down', from: cmd.from || 'claude', ...cmd };
     delete msg.to;
+    const transient = !!msg.transient;      // state pings (session.listening): never queued for absent windows
+    delete msg.transient;
     const targets = this._targets(to ?? cmd.to);
     for (const w of targets) {
       if (w.clients.size === 0) {
-        if (!msg.ttl || Date.now() - msg.ts < msg.ttl) w.pending.push(msg);
+        if (!transient && (!msg.ttl || Date.now() - msg.ts < msg.ttl)) w.pending.push(msg);
         continue;
       }
       for (const res of w.clients) this._write(res, msg);

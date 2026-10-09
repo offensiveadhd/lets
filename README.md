@@ -61,6 +61,10 @@ and `node engine/bin/lets.mjs install-skill` for the bare `/lets` alias. Update 
 4. Ask for more: *"open an image uploader"* → a paste/drop card appears; paste a screenshot and Claude reads the file. *"give me sliders for the weights"* → sliders appear, and every change reaches Claude.
 5. `/lets entity` shows who the companion is and what it has learned; `/lets store timeline` searches the community store.
 
+## Listening vs away
+
+While `/lets graph` runs, Claude stays in an attentive loop and the window shows a green dot: everything you do in the window (chat, Ask, Send to Claude, Pip's menu, a pasted image) gets a reaction within seconds. When Claude is not in that loop the dot turns amber and the chat says *Pip is away*: your messages are kept and delivered with your next prompt in Claude Code. In the terminal CLI you can also load the plugin as a channel (`claude --dangerously-load-development-channels plugin:lets@lets`), and window events wake Claude directly.
+
 ## The companion
 
 The entity is Claude's presence inside the window: a floating orb that follows your cursor with a gentle spring, flips sides so it never covers what you point at, and goes sleepy when you pause. It keeps a persona (`~/.lets/entity/persona.json`), an interaction profile learned from how you move and click, a memory of what you liked, and **special skills** — small markdown playbooks Claude writes for itself when it discovers a reusable way to help ("screenshot → nodes → questions"). Skills are listed on every open and read on demand, so the companion really does get better at *you*.

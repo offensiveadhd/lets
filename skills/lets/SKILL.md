@@ -51,17 +51,38 @@ improvise a transport.
 5. **Interact** (rules below) until the human closes the window or says so.
 6. **Learn before leaving**: `lets.entity {action:"learn", kind:"note", text:"<what this session taught you about the human>", likes:[…], dislikes:[…]}`.
 
+## Staying in the window (the attentive loop)
+
+A window is only alive while you listen. After the greeting, **stay**:
+
+1. `lets.listen {wait_ms: 90000}` — blocks until the human does something.
+   The window shows "Pip is listening" while you are inside this call.
+2. React to what came back (rules below), then go to 1 again.
+3. Keep looping while a window is connected. Leave only when the human closes
+   the window, says goodbye/stop/done in the window or the transcript, or
+   when **15 minutes** pass with no event at all — then say one line in the
+   window ("I'll be back when you ping me in Claude Code"), do the
+   *learn before leaving* step, and end the turn.
+4. A message typed in the Claude Code transcript while you loop reaches you
+   between calls: answer it, then continue the loop unless it tells you to stop.
+
+Each empty wait costs ~100 tokens; that is the price of a live companion.
+Never spin with `wait_ms: 0` in a loop.
+
 ## Interaction rules (token discipline)
 
-- Window events reach you **automatically on every prompt** through the
-  prompt hook (`[lets] N window event(s)…`). Treat them as part of the human's
-  message. React through the window (`send`/`say`), not with long transcript prose.
+- Window events also reach you **on every prompt** through the prompt hook
+  (`[lets] N window event(s)…`) when you are not looping. Treat them as part of
+  the human's message. React through the window (`send`/`say`), not with long
+  transcript prose.
 - Before reasoning about a board, `lets.query {type:"graph.snapshot"}` — never
   reconstruct it from memory of earlier events.
-- `lets.listen {wait_ms:0}` to drain when the human refers to something you
-  have not seen. `lets.listen {wait_ms:30000}` **only** right after you asked
-  the human to do something in the window. At most two consecutive waits
-  without new input; then stop and end the turn normally.
+- `chat.message` → answer with `say` (chat). `graph.ask` → answer in chat and
+  `graph.highlight` the nodes you talk about; if the question asks you to add
+  or rename, do it with `graph.node.add` / `graph.node.set` right away.
+  `graph.export` → one short reading of the flow in chat plus 1–3 concrete
+  suggestions as nodes/annotations. `entity.pick` → the shell already turned
+  it into a `graph.ask` or a local action; act on the `graph.ask`, not the pick.
 - Batch commands: one `send` with several commands beats several sends.
 - Speak in the window the way the persona would (`chatty` low → one line).
   Use `entity.mood` honestly: `thinking` while you work, `proud` when done.

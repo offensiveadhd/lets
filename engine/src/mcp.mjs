@@ -32,6 +32,20 @@ export class McpServer {
 
   _send(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }
 
+  /** Fire a JSON-RPC notification (no id, no reply). */
+  notify(method, params) { this._send({ jsonrpc: '2.0', method, params }); }
+
+  /**
+   * Push a message into the Claude Code session as a channel event
+   * (`notifications/claude/channel`). Only delivered when the server was
+   * loaded as a channel; dropped silently otherwise.
+   */
+  channel(content, meta = {}) {
+    const clean = {};
+    for (const [k, v] of Object.entries(meta)) if (/^[A-Za-z0-9_]+$/.test(k) && v != null) clean[k] = String(v);
+    this.notify('notifications/claude/channel', { content: String(content), meta: clean });
+  }
+
   async _handle(msg) {
     if (Array.isArray(msg)) { for (const m of msg) await this._handle(m); return; }
     const { id, method, params } = msg;
@@ -43,7 +57,10 @@ export class McpServer {
         case 'initialize': {
           const want = params?.protocolVersion;
           const protocolVersion = SUPPORTED.includes(want) ? want : SUPPORTED[0];
-          return reply({ protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: this.name, version: this.version }, instructions: this.instructions || '' });
+          // `claude/channel`: when Claude Code loads this server as a channel (CLI: --channels / development
+          // channels), window events can be pushed as turn-starting messages; otherwise the capability is inert.
+          const capabilities = { tools: { listChanged: false }, experimental: { 'claude/channel': {} } };
+          return reply({ protocolVersion, capabilities, serverInfo: { name: this.name, version: this.version }, instructions: this.instructions || '' });
         }
         case 'notifications/initialized': case 'notifications/cancelled': case 'notifications/roots/list_changed': return;
         case 'ping': return reply({});

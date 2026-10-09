@@ -317,7 +317,7 @@ function mount(lets, opts) {
   const P = { start: Date.now(), speeds: [], gaps: [], reg: { tl: 0, tr: 0, bl: 0, br: 0, c: 0 }, clicks: 0, idleMs: 0, summons: 0, picks: 0, dismisses: 0,
     lastInput: performance.now(), lastAction: 0, winT: 0, winD: 0, dirty: false, lastEmit: Date.now() };
   const E = { shown: false, x: innerWidth - 150, y: innerHeight - 46, vx: 0, vy: 0, px: null, py: null, ax: 0, ay: 0, sideX: 1, sideY: -1,
-    offX: 48, offY: 36, omega: 9, parked: false, hold: 0, caught: false, hover: false, still: false, lx: 0, ly: 0, peak: false, raf: 0, last: 0,
+    offX: 66, offY: 50, omega: 9, parked: false, hold: 0, caught: false, hover: false, still: false, drag: false, lx: 0, ly: 0, peak: false, raf: 0, last: 0,
     mood: 'idle', base: 'idle', over: '', typing: false, dozing: false, blinkT: 0, bubbleT: 0 };
   E.tx = E.tlx = E.x; E.ty = E.tly = E.y;
 
@@ -347,7 +347,7 @@ function mount(lets, opts) {
     const pace = (P.speeds.length >= 20 && median(P.speeds)) || saved?.pace || persona.pace || 600;
     E.omega = clamp(5 + pace / 130, 5.5, 14) * (0.65 + 0.7 * persona.traits.speed);   // faster users → snappier spring
     const d = 0.6 + 0.8 * persona.traits.distance;
-    E.offX = 48 * d; E.offY = 36 * d;
+    E.offX = 66 * d; E.offY = 50 * d;                                     // a comfortable step away from the pointer
   }
 
   function applyPersona(p = {}) {
@@ -370,9 +370,11 @@ function mount(lets, opts) {
   /** Follow target for a pointer position: offset up-right, flipping near viewport edges (with hysteresis). */
   function targetFor(px, py) {
     const vw = innerWidth, vh = innerHeight, r = SIZE / 2 + 6;
-    if (E.sideX > 0 ? px + E.offX + r > vw : px + E.offX + r < vw - 48) E.sideX = -E.sideX;
-    if (E.sideY < 0 ? py - E.offY - r < 0 : py - E.offY - r > 48) E.sideY = -E.sideY;
-    return { x: clamp(px + E.sideX * E.offX, r, vw - r), y: clamp(py + E.sideY * E.offY, r, vh - r) };
+    const m = E.drag ? 1.5 : 1;                                            // while the human drags something, give more room
+    const ox = E.offX * m, oy = E.offY * m;
+    if (E.sideX > 0 ? px + ox + r > vw : px + ox + r < vw - 48) E.sideX = -E.sideX;
+    if (E.sideY < 0 ? py - oy - r < 0 : py - oy - r > 48) E.sideY = -E.sideY;
+    return { x: clamp(px + E.sideX * ox, r, vw - r), y: clamp(py + E.sideY * oy, r, vh - r) };
   }
 
   function kick() { if (!E.raf && E.shown) { E.last = performance.now(); E.raf = requestAnimationFrame(frame); } }
@@ -414,6 +416,8 @@ function mount(lets, opts) {
   }
 
   function show(at, fx = true) {
+    setCatchable(true);                                   // just summoned: reachable right away
+    cancel(E.catchT); E.catchT = later(() => setCatchable(E.caught || M.open), 1500);
     if (at) { E.x = E.tx = E.tlx = at.x; E.y = E.ty = E.tly = at.y; E.vx = E.vy = 0; }
     const was = E.shown;
     E.shown = true; eLayer.dataset.shown = 'true';
@@ -504,6 +508,7 @@ function mount(lets, opts) {
     if (fi >= 0 && items.length) menu.querySelectorAll('.lets-menu-item')[Math.min(fi, items.length - 1)].focus();
   }
   function openMenu(ctx, focus) {
+    setCatchable(true);
     M.ctx = ctx; M.local = norm(safe(opts.quickSuggestions, ctx), 'local');
     M.open = true; M.waiting = true; cancel(M.waitT);
     M.waitT = later(() => { M.waiting = false; if (M.open) renderMenu(); }, 6000);
@@ -520,6 +525,7 @@ function mount(lets, opts) {
     menu.dataset.open = 'false'; sprite.setAttribute('aria-expanded', 'false');
     sprite.dataset.hasSuggestions = String(M.remote.length > 0);
     if (had || refocus) sprite.focus({ preventScroll: true });
+    setCatchable(E.caught);
     kick();
   }
   function suggest(items, replace) {
@@ -597,7 +603,7 @@ function mount(lets, opts) {
     if ((e.key === 'Enter' || e.key === ' ') && !e.ctrlKey) { e.preventDefault(); activate(E.x, E.y, true); }
     else if (e.key === 'ArrowDown' && M.open) { e.preventDefault(); menu.querySelector('.lets-menu-item')?.focus(); }
   });
-  on(sprite, 'pointerenter', () => { E.hover = true; E.caught = true; });
+  on(sprite, 'pointerenter', () => { E.hover = true; E.caught = true; setCatchable(true); });
   on(sprite, 'pointerleave', () => { E.hover = false; });
   on(bubble, 'click', hideBubble);
   on(menu, 'keydown', (e) => {
@@ -619,9 +625,16 @@ function mount(lets, opts) {
         P.reg[rx > 0.3 && rx < 0.7 && ry > 0.3 && ry < 0.7 ? 'c' : (ry < 0.5 ? 't' : 'b') + (rx < 0.5 ? 'l' : 'r')]++;
         P.winT = t; P.winD = 0;
       }
-      const ex = E.x - x, ey = E.y - y, de = Math.hypot(ex, ey);   // let the human catch it: hold while approached
-      if (E.hover || (de < 58 && mx * ex + my * ey > 0)) E.caught = true;
-      else if (de > 110) E.caught = false;
+      // speed of this move (px/s); a deliberate approach is slow, a drag across the board is fast
+      const dtm = Math.max(1, t - (E.lastMoveT || t - 16));
+      E.spd = Math.hypot(mx, my) / (dtm / 1000);
+      E.lastMoveT = t;
+      const ex = E.x - x, ey = E.y - y, de = Math.hypot(ex, ey);   // let the human catch it: hold while approached slowly
+      if (E.drag) E.caught = false;                                   // never park in the way of a drag
+      else if (E.hover && E.spd < 900) E.caught = true;
+      else if (de < 58 && E.spd < 350) E.caught = true;              // slow and near: it is being reached for
+      else if (de > 110 || E.spd > 700) E.caught = false;            // far, or the pointer is just passing through
+      setCatchable(E.caught || M.open);
     }
     E.px = x; E.py = y;
     if (E.parked && t > E.hold) { E.parked = false; E.ax = x; E.ay = y; }
@@ -633,7 +646,25 @@ function mount(lets, opts) {
     touch(t); act(t);
     if (e.button === 0) P.clicks++;
     if (M.open && !wrap.contains(e.target)) closeMenu();
+    // a press on the unique's own surface starts a drag: the sprite steps aside and stops taking pointer events
+    if (e.button === 0 && !root.contains(e.target)) setDrag(true);
   }, true);
+  const endDrag = () => setDrag(false);
+  on(window, 'pointerup', endDrag, true);
+  on(window, 'pointercancel', endDrag, true);
+  on(window, 'blur', endDrag);
+  function setDrag(on) {
+    if (E.drag === on) return;
+    E.drag = on;
+    eLayer.dataset.drag = on ? 'true' : 'false';
+    if (on) { E.caught = false; E.hover = false; setCatchable(M.open); }
+    kick();
+  }
+  /** The sprite takes pointer events only when the human is reaching for it (or its menu is open); otherwise clicks fall through to the board. */
+  function setCatchable(on) {
+    const v = on ? 'true' : 'false';
+    if (eLayer.dataset.catchable !== v) eLayer.dataset.catchable = v;
+  }
   on(window, 'wheel', () => touch(performance.now()), { passive: true });
   on(window, 'resize', () => {
     const r = SIZE / 2 + 6;
@@ -761,6 +792,7 @@ function mount(lets, opts) {
       await Promise.allSettled(atts.map((a) => a.promise));
       const attachments = atts.filter((a) => a.path).map((a) => ({ path: a.path, mime: a.mime }));
       lets.emit('chat.message', attachments.length ? { text, attachments } : { text });
+      if (L.on === false) toast(`${persona.name} is away — Claude reads this with your next message in Claude Code`, 'info', 4500);
     });
   }
   on(form, 'submit', (e) => { e.preventDefault(); sendChat(); });
@@ -991,8 +1023,20 @@ function mount(lets, opts) {
     'component.remove': (d) => { remove(d.id); },
     'ui.toast': (d) => { toast(d.text, d.level, d.ttl); },
     'ui.theme': (d) => { if (typeof d.name === 'string') document.documentElement.dataset.letsTheme = d.name; if (d.vars) theme(d.vars); },
+    // host: is Claude blocked in `listen` right now? (shown as a dot in the chat header and on the sprite)
+    'session.listening': (d) => setListening(!!d.on),
   };
-  for (const dom of ['entity', 'chat', 'component', 'ui']) {
+  const L = { on: null };
+  function setListening(on) {
+    if (L.on === on) return;
+    L.on = on;
+    root.dataset.listening = on ? 'true' : 'false';
+    chatStatus.dataset.listening = on ? 'true' : 'false';
+    chatStatus.setAttribute('aria-label', on ? `${persona.name} is listening` : `${persona.name} is away`);
+    chatStatus.title = on ? `${persona.name} is listening` : `${persona.name} is away — messages are delivered with your next prompt in Claude Code`;
+    input.placeholder = on ? `Message ${persona.name}…  (Enter sends, Shift+Enter new line)` : `${persona.name} is away — your message waits for your next Claude Code prompt`;
+  }
+  for (const dom of ['entity', 'chat', 'component', 'ui', 'session']) {
     offs.push(lets.on(`${dom}.*`, (data, msg) => {
       const fn = CMD[msg.type];
       if (!fn) return undefined;                                      // LIP §8: ignore unknown types
@@ -1040,6 +1084,8 @@ function mount(lets, opts) {
     onInline: (cb) => { inlineCbs.add(cb); return () => inlineCbs.delete(cb); },
     /** Receive every upload result {path, url?, w, h, mime, bytes, source, componentId?, blob}. */
     onMedia: (cb) => { mediaCbs.add(cb); return () => mediaCbs.delete(cb); },
+    /** true while Claude is blocked in `listen` (reacts live), false when away, null before the host said. */
+    get listening() { return L.on; },
   };
 
   // ================================================================== boot
