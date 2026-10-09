@@ -24,7 +24,7 @@ improvise a transport.
 | `$0` | Do |
 |---|---|
 | a unique name (`graph`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). |
-| `list` | `lets.uniques {action:"list"}` → show name, title, source, problems. |
+| `list` | `lets.uniques {action:"list"}` → show name, title, source, problems. `{action:"defaults"}` installs the missing default uniques (graph). |
 | `store …` | **Store flow**: `sync`, then `search` with the rest of the args; show results; install only after inspect + explicit yes. |
 | `entity` | `lets.entity {action:"brief"}` → tell the human who the companion is, what it learned, which special skills it has. `entity teach …` / `entity forget …` act on skills. |
 | `plan …` | **Plan flow**: turn the rest of the args into tasks, call `lets.plan`, spawn waves with the Agent tool, report outcomes. |

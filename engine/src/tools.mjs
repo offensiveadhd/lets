@@ -11,7 +11,7 @@ import { matchType } from './bus.mjs';
 // background task, so one listen stays under that: 100 s max, 90 s is what the skill uses.
 const MAX_WAIT = 100_000;
 
-export function buildTools({ host, entity, router, store, log }) {
+export function buildTools({ host, entity, router, store, log, provision = async () => [] }) {
   const bus = host.bus;
 
   // fold entity.profile events into the persisted profile as they pass by
@@ -41,8 +41,15 @@ export function buildTools({ host, entity, router, store, log }) {
       },
       async handler({ unique, args = {}, launch = 'none', windowId, brief = true }) {
         host.registry.refresh();
-        const u = host.registry.get(unique);
-        if (!u) return { error: `unknown unique "${unique}"`, available: host.registry.list().map((x) => x.name) };
+        let u = host.registry.get(unique);
+        if (!u) {
+          // a default unique (graph, …) that is not installed yet: install it now, then continue
+          const report = await provision();
+          const mine = report.find((r) => r.name === unique);
+          host.registry.refresh();
+          u = host.registry.get(unique);
+          if (!u) return { error: `unknown unique "${unique}"`, available: host.registry.list().map((x) => x.name), defaults: report, hint: mine?.status === 'failed' ? `default "${unique}" could not be installed: ${(mine.problems || []).join('; ')} (needs git and access to the repo)` : 'install it from the store or add it under ~/.lets/uniques' };
+        }
         if (!u.ok) return { error: `unique "${unique}" is invalid`, problems: u.problems };
         const { url, windowId: w } = host.windowUrl(unique, { windowId, args });
         if (launch === 'system') openSystem(url, log);
@@ -173,10 +180,11 @@ export function buildTools({ host, entity, router, store, log }) {
     },
     {
       name: 'uniques',
-      description: 'List available uniques (bundled, user-installed, project-local), show one in detail (manifest summary + guide), or rescan the folders.',
-      inputSchema: { type: 'object', properties: { action: { type: 'string', enum: ['list', 'info', 'refresh'] }, name: { type: 'string' } } },
-      async handler({ action = 'list', name }) {
+      description: 'List available uniques (default/installed, project-local, extra dirs), show one in detail (manifest summary + guide), rescan the folders, or install the missing default uniques (graph, …) from git.',
+      inputSchema: { type: 'object', properties: { action: { type: 'string', enum: ['list', 'info', 'refresh', 'defaults'] }, name: { type: 'string' }, force: { type: 'boolean', description: 'defaults: reinstall even if present' } } },
+      async handler({ action = 'list', name, force = false }) {
         if (action === 'refresh') return host.registry.refresh();
+        if (action === 'defaults') return { report: await provision({ force, only: name || null }), uniques: host.registry.list().map((x) => x.name) };
         if (action === 'info') return name ? { summary: host.registry.summary(name), guide: host.registry.guideText(name), problems: host.registry.get(name)?.problems } : { error: 'name required' };
         return host.registry.list();
       },

@@ -38,9 +38,11 @@ export function inspectUnique(dir) {
 
 export class Registry {
   constructor({ projectDir = process.cwd(), log = () => {} } = {}) {
+    // precedence: later sources win for the same name (project > extra dirs > user-installed > bundled)
     this.sources = [
       { kind: 'bundled', dir: path.join(PLUGIN_ROOT, 'uniques') },
       { kind: 'user', dir: DIRS.uniques },
+      ...String(process.env.LETS_UNIQUES_DIRS || '').split(path.delimiter).filter(Boolean).map((d) => ({ kind: 'extra', dir: path.resolve(d) })),
       { kind: 'project', dir: path.join(projectDir, '.lets', 'uniques') },
     ];
     this.log = log;

@@ -21,7 +21,7 @@
 | Layer | What it does |
 |---|---|
 | **Engine** (`engine/`) | A zero-dependency Node MCP server. Hosts windows on loopback, carries the protocol, keeps the companion's memory, routes multi-task work to the cheapest trustworthy model, installs community mediums from git. |
-| **Uniques** (`uniques/`) | The interactive mediums. Static web apps that speak LIP. First one: **graph**. |
+| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP, each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. First one: [graph](https://github.com/TikoTikTok/lets-unique-graph). |
 | **Shell + SDK** (`sdk/`) | What every unique gets for free: the companion entity, chat panel, runtime components (sliders, options, forms, image paste…), toasts, theme. |
 
 Everything crosses **LIP** — the *Lets Interaction Protocol* ([protocol/LIP.md](protocol/LIP.md)): typed JSON envelopes, up (human → Claude) and down (Claude → window). It is designed for mediums that do not exist yet; a unique for voice, AR or a haptic strip speaks the same envelope.
@@ -35,7 +35,7 @@ git clone https://github.com/TikoTikTok/lets.git && cd lets
 node install.mjs
 ```
 
-It adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, and installs a personal `/lets` alias so both of these work in any session (restart the app or run `/reload-plugins` once):
+It adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, installs the default uniques (graph) into `~/.lets/uniques`, and installs a personal `/lets` alias so both of these work in any session (restart the app or run `/reload-plugins` once):
 
 ```
 /lets:lets graph
@@ -69,6 +69,15 @@ While `/lets graph` runs, Claude stays in an attentive loop and the window shows
 
 The entity is Claude's presence inside the window: a floating orb that follows your cursor with a gentle spring, flips sides so it never covers what you point at, and goes sleepy when you pause. It keeps a persona (`~/.lets/entity/persona.json`), an interaction profile learned from how you move and click, a memory of what you liked, and **special skills** — small markdown playbooks Claude writes for itself when it discovers a reusable way to help ("screenshot → nodes → questions"). Skills are listed on every open and read on demand, so the companion really does get better at *you*.
 
+## Uniques are separate
+
+The engine knows nothing about graphs. A unique is a repository with a manifest, a guide and a static UI; the engine serves it, gives it the companion and the protocol, and that is all. `defaults.json` lists the uniques every installation gets (installed from git into `~/.lets/uniques` the first time the engine runs or the first time you open one; `node engine/bin/lets.mjs defaults` does it by hand; `LETS_NO_DEFAULTS=1` opts out). More defaults will be added there as they mature. Everything else comes from the store.
+
+| Unique | Repo | Default |
+|---|---|---|
+| graph — talk in diagrams | [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | yes |
+| pulse — a dial you talk through (template) | [lets-unique-template](https://github.com/TikoTikTok/lets-unique-template) | no |
+
 ## Build your own unique
 
 A unique is a folder:
@@ -84,7 +93,7 @@ my-unique/
 Start from the template repo **lets-unique-template**, run the host standalone while developing:
 
 ```bash
-node engine/bin/lets.mjs serve --open my-unique   # with my-unique in ./.lets/uniques/ or ~/.lets/uniques/
+LETS_UNIQUES_DIRS=/path/to/parent node engine/bin/lets.mjs serve --open my-unique   # or put it in ./.lets/uniques/ or ~/.lets/uniques/
 node engine/bin/lets.mjs validate ./my-unique
 ```
 
@@ -103,7 +112,9 @@ skills/lets/      the /lets skill (SKILL.md + reference.md)
 hooks/            UserPromptSubmit hook: delivers window events with every prompt
 engine/           host, bus, registry, entity, router, store, MCP server
 sdk/              lets-client.js (transport), lets-shell.js/.css (companion, chat, components)
-uniques/graph/    the first unique
+defaults.json     uniques installed on first use (graph)
+uniques/          bundled uniques (none; see uniques/README.md)
+tests/fixtures/   a minimal unique the tests run against
 protocol/         LIP.md + JSON schemas
 docs/             architecture, authoring, entity
 tests/            node --test

@@ -12,6 +12,7 @@ jobs:
         node: [20, 22]
     env:
       LETS_HOME: ${{ github.workspace }}/.lets-home
+      LETS_NO_DEFAULTS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

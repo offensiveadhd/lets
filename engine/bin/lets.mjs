@@ -73,6 +73,17 @@ switch (cmd) {
     process.exit(bad ? 1 : 0);
   }
   case 'uniques': { ensureDirs(); print(new Registry().list()); break; }
+  case 'defaults': {
+    // install the default uniques listed in defaults.json into ~/.lets/uniques:  lets defaults [--force] [--only NAME]
+    ensureDirs();
+    const { ensureDefaults, listDefaults } = await import('../src/defaults.mjs');
+    const { Store } = await import('../src/store.mjs');
+    const reg = new Registry();
+    print(`defaults: ${listDefaults().map((u) => `${u.name} (${u.repo})`).join(', ') || 'none'}`);
+    const report = await ensureDefaults({ store: new Store(), registry: reg, log: (s, m) => print(`  [${s}] ${m}`), force: !!flags.force, only: flags.only || null });
+    for (const r of report) print(`  ${r.status.padEnd(9)} ${r.name}${r.version ? ` @${r.version}` : ''}${r.problems ? ` — ${r.problems.join('; ')}` : ''}`);
+    process.exit(report.some((r) => r.status === 'failed') ? 1 : 0);
+  }
   case 'url': {
     // print a window URL for a running host:  lets url <unique> [--port N] [--window ID]
     const run = findHost(flags.port);
