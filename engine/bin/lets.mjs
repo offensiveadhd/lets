@@ -92,6 +92,14 @@ switch (cmd) {
     print(await res.json());
     break;
   }
+  case 'listen': {
+    // block until the human does something (plays Claude's attentive loop):  lets listen [--wait MS] [--cursor NAME] [--port N]
+    const run = findHost(flags.port);
+    if (!run) { print('no running host'); process.exit(1); }
+    const res = await fetch(`http://127.0.0.1:${run.port}/lip/listen?cursor=${encodeURIComponent(flags.cursor || 'claude')}&wait_ms=${Number(flags.wait || 30000)}&max=100`, { headers: { 'x-lets-token': run.token } });
+    print(await res.json());
+    break;
+  }
   case 'events': {
     // drain pending events from a running host:  lets events [--cursor NAME] [--port N]
     const run = findHost(flags.port);

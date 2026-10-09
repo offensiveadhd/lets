@@ -78,6 +78,15 @@
 /* ------------------------------------------------------------ the entity */
 .lets-entity-layer { position: absolute; inset: 0; pointer-events: none; --lets-e-glow: var(--lets-accent); --lets-e-tint: #7b4fe0; --lets-bob: 3.2s; --lets-play: .6; }
 .lets-entity-layer[data-shown=false] { display: none; }
+/* the sprite is click-through unless the human is reaching for it (slow approach / hover / menu open); never during a drag */
+.lets-entity { pointer-events: none; }
+.lets-entity-layer[data-catchable=true] .lets-entity { pointer-events: auto; }
+.lets-entity-layer[data-drag=true] .lets-entity { pointer-events: none !important; }
+/* listening state: the chat-header dot and a tiny ear-dot on the sprite */
+.lets-chat-status[data-listening=true] { background: var(--lets-ok) !important; box-shadow: 0 0 8px var(--lets-ok); }
+.lets-chat-status[data-listening=false][data-status=open] { background: var(--lets-warn) !important; box-shadow: none; }
+.lets-shell[data-listening=true] .lets-entity::after { content: ''; position: absolute; right: -2px; top: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--lets-ok); box-shadow: 0 0 8px var(--lets-ok); border: 2px solid var(--lets-bg); }
+.lets-shell[data-listening=false] .lets-entity::after { content: ''; position: absolute; right: -2px; top: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--lets-fg-dim); opacity: .7; border: 2px solid var(--lets-bg); }
 .lets-e-wrap, .lets-e-trail { position: absolute; left: 0; top: 0; will-change: transform; }
 .lets-e-wrap { width: 56px; height: 56px; }
 .lets-e-trail { width: 44px; height: 44px; border-radius: 50%; opacity: .55; background: radial-gradient(circle, color-mix(in srgb, var(--lets-e-glow) 60%, transparent), transparent 70%); }

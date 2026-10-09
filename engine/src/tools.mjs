@@ -7,7 +7,9 @@ import { spawn } from 'node:child_process';
 import { rid } from './ids.mjs';
 import { matchType } from './bus.mjs';
 
-const MAX_WAIT = 55_000;
+// Claude Code's MCP tool timeout is hours, but a call running past ~2 minutes may be moved to a
+// background task, so one listen stays under that: 100 s max, 90 s is what the skill uses.
+const MAX_WAIT = 100_000;
 
 export function buildTools({ host, entity, router, store, log }) {
   const bus = host.bus;
@@ -55,17 +57,18 @@ export function buildTools({ host, entity, router, store, log }) {
     },
     {
       name: 'listen',
-      description: 'Read events the human produced in open windows (selections, exports, chat messages, pasted images, entity clicks...). Non-blocking by default; set wait_ms to block until something happens (max 55000). Events are compact; big payloads (images) arrive as file paths you can Read.',
+      description: 'Read events the human produced in open windows (selections, exports, chat messages, pasted images, entity clicks...). Non-blocking by default; set wait_ms to block until something happens (max 100000; the attentive loop uses 90000). Events are compact; big payloads (images) arrive as file paths you can Read.',
       inputSchema: {
         type: 'object',
         properties: {
-          wait_ms: { type: 'integer', minimum: 0, maximum: MAX_WAIT, description: 'block up to this long for the first event (default 0)' },
+          wait_ms: { type: 'integer', minimum: 0, maximum: MAX_WAIT, description: 'block up to this long for the first event (default 0; the attentive loop uses 90000)' },
           max: { type: 'integer', minimum: 1, maximum: 200, description: 'max events to return (default 50)' },
           types: { type: 'array', items: { type: 'string' }, description: 'only these types; "graph.*" wildcards allowed' },
           cursor: { type: 'string', description: 'named cursor (default "claude")' },
         },
       },
       async handler({ wait_ms = 0, max = 50, types = null, cursor = 'claude' }) {
+        if (cursor === 'claude') bus.touchListening(wait_ms > 0 ? 8000 : 3000);
         const waited = await bus.wait(cursor, Math.min(wait_ms, MAX_WAIT));
         const r = bus.read(cursor, { max, types });
         return { events: r.events.map(compact), cursor: r.cursor, pending: r.pending, timedOut: wait_ms > 0 && !waited && r.events.length === 0, windows: bus.windowList().map((w) => ({ id: w.id, unique: w.unique, connected: w.connected })) };
