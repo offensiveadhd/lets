@@ -28,24 +28,30 @@ Everything crosses **LIP** — the *Lets Interaction Protocol* ([protocol/LIP.md
 
 ## Install (private, for now)
 
+One command from a checkout (needs Node 18+, the `claude` CLI on PATH, and git credentials that can read the private repo: `gh auth setup-git`):
+
 ```bash
-# inside Claude Code
+git clone https://github.com/TikoTikTok/lets.git && cd lets
+node install.mjs
+```
+
+It adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, and installs a personal `/lets` alias so both of these work in any session (restart the app or run `/reload-plugins` once):
+
+```
+/lets:lets graph
+/lets graph
+```
+
+Options: `--local` (marketplace from this checkout instead of GitHub), `--native` (also the optional `lets-native` mod, Claude Code 2.1.287+), `--no-skill`, `--uninstall`.
+
+By hand, inside Claude Code:
+
+```
 /plugin marketplace add TikoTikTok/lets
 /plugin install lets@lets
 ```
 
-Needs Node 18+ on PATH and git credentials that can read the private repo (`gh auth setup-git`). Then:
-
-```
-/lets:lets graph
-```
-
-Want the bare `/lets graph`? Install the personal alias once:
-
-```bash
-node "$(claude plugin path lets 2>/dev/null || echo ~/.claude/plugins/cache/lets/lets/0.1.0)/engine/bin/lets.mjs" install-skill
-```
-(or run `node engine/bin/lets.mjs install-skill` from a checkout).
+and `node engine/bin/lets.mjs install-skill` for the bare `/lets` alias. Update later with `claude plugin update lets@lets`.
 
 ## Using it
 
