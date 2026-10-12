@@ -56,7 +56,7 @@ Batches: a JSON array of envelopes is accepted anywhere a single envelope is.
 | Domain | Owner | Purpose |
 |---|---|---|
 | `lip.*` | protocol | hello / ready / ack / error / ping |
-| `session.*` | host | window lifecycle (`opened`, `closed`, `focus`, `blur`) |
+| `session.*` | host + shell | window lifecycle (`opened`, `closed`, `focus`, `blur`, `listening`) and handoff (`close`, `closing`, `stay`) |
 | `entity.*` | shell | the companion ("you"): summon, dismiss, click, say, mood, suggest, move, profile |
 | `chat.*` | shell | chat view: open, close, message, say (stream) |
 | `component.*` | shell | dynamic components: create, update, remove, action |
@@ -78,6 +78,27 @@ events through the shell SDK, never by forging envelopes.
 | `lip.error` | both | `{code, message, re?}` |
 | `lip.ping` / `lip.pong` | both | liveness |
 
+### 3.1b Session (lifecycle and handoff)
+| Type | Dir | Data |
+|---|---|---|
+| `session.opened` / `session.closed` | up (host) | `{windowId, unique}` — a window connected for the first time / went away for good |
+| `session.focus` / `session.blur` | up | `{}` — the tab became visible / hidden |
+| `session.listening` | down (host) | `{on, at}` — whether Claude is blocked in `listen` right now (the shell shows "listening" vs "away") |
+| `session.close` | down | `{reason:"handoff"\|"idle"\|"claude", text?, ms?}` — the window should say goodbye and close itself. Sent by the **host** after an *export* event (see §6 `session`), or by Claude. |
+| `session.closing` | up (shell) | `{reason}` — the farewell started |
+| `session.stay` | up (shell) | `{}` — the human pressed *Keep working*: the window stays |
+
+**Handoff.** A unique's manifest names which of its types are the *export*
+(the human pressed "Send to Claude"), the *snapshot* (reply to a state query)
+and the *restore* command. When an export event reaches the host it is saved
+as a **session** (`~/.lets/sessions/<unique>/<id>.json`), its `data` gains
+`session: {id, handoff: true, saved: true, summary}` as the first key, and the
+window receives `session.close`. Claude then answers in the transcript, not in
+the window. `open {resume: "last" | id}` later queues the restore command with
+the saved payload, so the window comes back as it was sent. Snapshot events
+update the saved session silently. `~/.lets/config.json` `"handoff": "stay"`
+keeps windows open instead.
+
 ### 3.2 Entity (the companion)
 Events (up):
 - `entity.summon {x,y,context?}` — right click / hotkey; `context` is whatever the unique attaches (e.g. node under cursor).
@@ -93,6 +114,9 @@ Commands (down):
 - `entity.move {x,y}` or `{to:"cursor"|"center"|"<selector>"}` — the shell eases there; never teleports.
 - `entity.show {}` / `entity.hide {}`
 - `entity.persona {name, traits}` — applied look & behaviour (speed, distance) from the persisted persona.
+- `entity.react {name, ms?}` — play a short expression (`dizzy`, `whoa`, `startled`, `gasp`, `oops`, `wink`, `cheer`, `blush`, `boop`, `yawn`, `peek`, `nod`, `shake-no`, `wave`, `spin`, `dance`, `disco`, `sparkle`). Most of these the shell also plays by itself from how the human moves; see docs/ENTITY.md.
+
+Event (up): `entity.secret {name}` — the human discovered one of the companion's secret moves (once per window per move).
 
 ### 3.3 Chat
 - up `chat.message {text, attachments?:[{path,mime}]}`
@@ -155,6 +179,7 @@ within 400 ms collapse to the latest.
   "events": { "graph.node.select": { "summary": "User selected nodes", "schema": "schemas/node.select.json" } },
   "commands": { "graph.node.add": { "summary": "Add a node", "schema": "schemas/node.add.json" } },
   "permissions": { "fs.write": ["uploads"], "net": [] },
+  "session": { "export": "graph.export", "snapshot": "graph.snapshot", "restore": "graph.load" },
   "author": { "name": "…", "url": "…" },
   "license": "MIT",
   "repository": "https://github.com/…"
@@ -168,6 +193,7 @@ Rules the host enforces:
 4. Every event/command type a unique declares starts with one of its domains.
 5. Unknown top-level keys are kept (forward compatibility) but ignored.
 6. `lip` major must match the host's.
+7. `session` (optional) names the export / snapshot / restore types for handoff (§3.1b); each must start with one of the unique's domains. Without it the host assumes `<domain>.export`, `<domain>.snapshot`, `<domain>.load`.
 
 ## 7. Guide (`GUIDE.md`)
 

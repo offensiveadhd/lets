@@ -4,7 +4,8 @@
  * One call gives a unique what all uniques share: the companion entity ("you"),
  * the chat panel, dynamic components, image paste/drop, toasts and the
  * deep-violet theme. The shell answers every `entity.*`, `chat.*`,
- * `component.*` and `ui.*` command itself (docs/UI-CONTRACT.md §2).
+ * `component.*` and `ui.*` command itself, plus `session.close` (the
+ * farewell) and `session.listening` (docs/UI-CONTRACT.md §2).
  *
  *   import { Lets } from '/sdk/lets-client.js';
  *   import { Shell } from '/sdk/lets-shell.js';
@@ -39,6 +40,34 @@ const RM = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motio
 const ICONS = { note: '✎', options: '☰', slider: '⇆', toggle: '◐', form: '▤', 'image-drop': '⬒', progress: '◔', code: '</>' };
 const TITLES = { note: 'Note', options: 'Choose', slider: 'Adjust', toggle: 'Switch', form: 'Form', 'image-drop': 'Add an image', progress: 'Progress', code: 'Code' };
 const GREETINGS = ['Hi!', 'Hey there ✦', 'Ready when you are.', 'What are we making?', 'Oh, hello!'];
+// Reactions (docs/ENTITY.md "Expressions & secret moves"): cooldown and default length in ms, plus the CSS hooks
+// set on the entity layer while one plays: data-face (eyes), data-mouth, data-fx (extra parts). Motion: motion().
+const REACT = {
+  dizzy:      { cd: 8000,  ms: 2200, face: 'spiral', mouth: 'wavy',  fx: 'orbit' },
+  whoa:       { cd: 5000,  ms: 1000, face: 'wide',   mouth: 'o',     fx: 'pulse' },
+  startled:   { cd: 6000,  ms: 1200, face: 'wide',   mouth: 'o',     fx: 'sweat' },
+  gasp:       { cd: 3000,  ms: 1000, face: 'wide',   mouth: 'o',     fx: 'hands' },
+  oops:       { cd: 3000,  ms: 1100, face: 'squint', mouth: 'flat',  fx: 'sweat' },
+  wink:       { cd: 2000,  ms: 900,  face: 'wink',   mouth: 'smile', fx: 'twinkle' },
+  cheer:      { cd: 4000,  ms: 1400, face: 'happy',  mouth: 'grin',  fx: 'arms confetti' },
+  blush:      { cd: 20000, ms: 1800, face: '',       mouth: 'smile', fx: 'blush' },
+  boop:       { cd: 0,     ms: 900,  face: 'happy',  mouth: 'o',     fx: 'heart blush' },
+  yawn:       { cd: 60000, ms: 2200, face: 'shut',   mouth: 'yawn',  fx: '' },
+  peek:       { cd: 15000, ms: 1300, face: '',       mouth: 'o',     fx: '' },
+  nod:        { cd: 1000,  ms: 700,  face: '',       mouth: 'smile', fx: '' },
+  'shake-no': { cd: 1000,  ms: 700,  face: '',       mouth: 'flat',  fx: '' },
+  wave:       { cd: 2000,  ms: 1600, face: 'happy',  mouth: 'smile', fx: 'wave' },
+  spin:       { cd: 1000,  ms: 800,  face: 'happy',  mouth: 'o',     fx: '' },
+  dance:      { cd: 10000, ms: 2400, face: 'happy',  mouth: 'smile', fx: 'notes' },
+  disco:      { cd: 30000, ms: 4000, face: 'happy',  mouth: 'grin',  fx: 'notes disco' },
+  sparkle:    { cd: 4000,  ms: 1200, face: 'happy',  mouth: 'smile', fx: 'stars' },
+  nightcap:   { cd: 0,     ms: 2600, face: 'shut',   mouth: 'flat',  fx: 'cap' },
+  wheee:      { cd: 0,     ms: 1200, face: 'squint', mouth: 'grin',  fx: 'trail' },
+};
+// secret moves: emitted once per window as entity.secret {name}, counted in entity.profile.secrets
+const SECRETS = { spin: 'barrel roll', dance: 'name dance', disco: 'disco', dizzy: 'round and round', nightcap: 'nightcap', boop: 'boop streak', wheee: 'wheee' };
+const KONAMI = 'ArrowUp ArrowUp ArrowDown ArrowDown ArrowLeft ArrowRight ArrowLeft ArrowRight b a';
+const FAREWELL = { handoff: 'Sent to Claude ✦ see you in Claude Code', idle: 'All quiet here, so this window is closing ✦ see you in Claude Code', claude: 'Back to Claude Code ✦ see you there' };
 let uid = 0;
 
 // ------------------------------------------------------------------ helpers
@@ -134,19 +163,40 @@ function ensureCss() {
 
 function loadProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch { return null; } }
 
+/** SVG path of a 4-point star at (x, y) with radius r. */
+const star = (x, y, r) => { const q = r * 0.3, f = (v) => +v.toFixed(2); return `M${f(x)} ${f(y - r)}L${f(x + q)} ${f(y - q)} ${f(x + r)} ${f(y)} ${f(x + q)} ${f(y + q)} ${f(x)} ${f(y + r)} ${f(x - q)} ${f(y + q)} ${f(x - r)} ${f(y)} ${f(x - q)} ${f(y - q)}Z`; };
+const ring = (n, fn) => Array.from({ length: n }, (_, i) => fn(i, (360 / n) * i)).join('');
+
+// Expression parts (spiral / X / shut / squint eyes, extra mouths, arms, sweat, cap, heart, notes, confetti,
+// stars, disco lights) are all in the markup and hidden (opacity 0) until a reaction or mood shows them.
 function spriteSvg(n) {
-  const eye = (x, cls) => `<g transform="translate(${x} -2)"><g class="lets-e-eye ${cls}"><ellipse class="lets-e-white" rx="3.9" ry="5"/><g class="lets-e-pupil"><circle r="2.2"/><circle class="lets-e-glint" cx=".8" cy="-.9" r=".8"/></g><path class="lets-e-arc" d="M-3.8 1.4Q0-3.6 3.8 1.4"/></g></g>`;
+  const eye = (x, cls, sq) => `<g transform="translate(${x} -2)"><g class="lets-e-eye ${cls}"><ellipse class="lets-e-white" rx="3.9" ry="5"/><g class="lets-e-pupil"><circle r="2.2"/><circle class="lets-e-glint" cx=".8" cy="-.9" r=".8"/></g><path class="lets-e-arc" d="M-3.8 1.4Q0-3.6 3.8 1.4"/>`
+    + `<path class="lets-e-spiral" d="M0 0a.7.7 0 0 1 1.4 0a1.4 1.4 0 0 1-2.8 0a2.1 2.1 0 0 1 4.2 0a2.8 2.8 0 0 1-5.6 0"/><path class="lets-e-x" d="M-2.6-2.6L2.6 2.6M2.6-2.6L-2.6 2.6"/><path class="lets-e-shut" d="M-3.6-.2Q0 3.2 3.6-.2"/><path class="lets-e-squint" d="${sq}"/></g></g>`;
+  const arm = (s) => `<g class="lets-e-arm lets-e-arm-${s < 0 ? 'l' : 'r'}"><ellipse class="lets-e-hand" cx="${22 * s}" cy="-5" rx="3.4" ry="4.4"/></g>`;
+  const disco = (k) => `<radialGradient id="lets-d${k}-${n}"><stop offset=".3" class="lets-d${k}0"/><stop offset="1" class="lets-dz"/></radialGradient>`;
   return `<svg class="lets-e-svg" viewBox="-32 -32 64 64" width="${SIZE}" height="${SIZE}" aria-hidden="true" focusable="false">
 <defs><radialGradient id="lets-aura-${n}"><stop offset="0" class="lets-g0"/><stop offset="1" class="lets-g1"/></radialGradient>
 <radialGradient id="lets-body-${n}" cx="38%" cy="30%" r="75%"><stop offset="0" class="lets-b0"/><stop offset=".55" class="lets-b1"/><stop offset="1" class="lets-b2"/></radialGradient>
-<linearGradient id="lets-rim-${n}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="lets-r0"/><stop offset="1" class="lets-r1"/></linearGradient></defs>
-<circle class="lets-e-aura" r="31" fill="url(#lets-aura-${n})"/><circle class="lets-e-ring" r="28.5"/>
+<linearGradient id="lets-rim-${n}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="lets-r0"/><stop offset="1" class="lets-r1"/></linearGradient>${disco('a')}${disco('b')}${disco('c')}</defs>
+<circle class="lets-e-aura" r="31" fill="url(#lets-aura-${n})"/>
+<g class="lets-e-disco">${['a', 'b', 'c'].map((k) => `<circle r="30" fill="url(#lets-d${k}-${n})"/>`).join('')}<g class="lets-e-disco-dots">${ring(8, (i, a) => `<circle class="lets-c${i % 3}" cy="-27" r="1.5" transform="rotate(${a})"/>`)}</g></g>
+<circle class="lets-e-ring" r="28.5"/>
 <g class="lets-e-body"><path class="lets-e-blob" d="M0-21C14-21 23-11 22 2 21 15 12 21 0 21S-21 15-22 2C-23-11-14-21 0-21Z" fill="url(#lets-body-${n})" stroke="url(#lets-rim-${n})"/>
 <ellipse class="lets-e-shine" cx="-8" cy="-12" rx="7" ry="3.4" transform="rotate(-24 -8 -12)"/>
 <ellipse class="lets-e-cheek" cx="-13" cy="6" rx="3.4" ry="2"/><ellipse class="lets-e-cheek" cx="13" cy="6" rx="3.4" ry="2"/>
-<g class="lets-e-blinker">${eye(-8, 'lets-e-eye-l')}${eye(8, 'lets-e-eye-r')}</g>
+${arm(-1)}${arm(1)}
+<g class="lets-e-blinker">${eye(-8, 'lets-e-eye-l', 'M-3-3L2.6 0-3 3')}${eye(8, 'lets-e-eye-r', 'M3-3L-2.6 0 3 3')}</g>
 <path class="lets-e-mouth lets-m-smile" d="M-4 9Q0 12.5 4 9"/><path class="lets-e-mouth lets-m-flat" d="M-3 10.5H3"/><ellipse class="lets-e-mouth lets-m-o" cx="0" cy="10.5" rx="2" ry="2.4"/>
-<text class="lets-e-z" x="13" y="-15">z</text></g>
+<path class="lets-e-mouth lets-m-wavy" d="M-6 10.5q1.5-1.8 3 0t3 0 3 0 3 0"/><path class="lets-e-mouth lets-m-grin" d="M-5 8.6Q0 9.8 5 8.6Q3.8 14.8 0 14.8Q-3.8 14.8-5 8.6Z"/>
+<path class="lets-e-sweat" d="M17.5-16Q14.9-12.1 14.9-10.4A2.6 2.6 0 0 0 20.1-10.4Q20.1-12.1 17.5-16Z"/>
+<text class="lets-e-z" x="13" y="-15">z</text>
+<g class="lets-e-cap"><path class="lets-e-cap-cone" d="M-14-15.5Q-9-30 6-29.5Q16-28 22.5-13L19.8-12Q15-21 6.5-22.5Q-4-23.5-14-15.5Z"/><path class="lets-e-cap-band" d="M-15.5-14.2Q-1-23 15.5-17.4"/><circle class="lets-e-cap-pom" cx="21.6" cy="-10.6" r="2.8"/></g></g>
+<g class="lets-e-fx"><g transform="translate(13 -25)"><path class="lets-e-heart" d="M0 3.4C-4.4.2-5.4-2.6-3.6-4.3-2.2-5.6-.6-4.8 0-3.5.6-4.8 2.2-5.6 3.6-4.3 5.4-2.6 4.4.2 0 3.4Z"/></g>
+<text class="lets-e-note" x="-27" y="-14">♪</text><text class="lets-e-note lets-c0" x="18" y="-20">♫</text>
+${ring(8, (i, a) => `<g transform="rotate(${a})"><rect class="lets-e-conf lets-c${i % 3}" x="-1.1" y="-15" width="2.2" height="3.4" rx=".6"/></g>`)}
+${ring(6, (i, a) => `<g transform="rotate(${a + 30})"><path class="lets-e-star lets-c${i % 2 ? 1 : 2}" d="${star(0, -23, 2.8)}"/></g>`)}
+<path class="lets-e-twinkle" d="${star(16, -13, 3.4)}"/>
+<g transform="translate(0 -22) scale(1 .4)"><g class="lets-e-dizzy">${ring(3, (i, a) => `<path d="${star(14 * Math.cos((a * Math.PI) / 180), 14 * Math.sin((a * Math.PI) / 180), 3.6)}"/>`)}</g></g></g>
 <g class="lets-e-orbit"><circle cx="0" cy="-28.5" r="2.6"/></g></svg>`;
 }
 
@@ -314,12 +364,18 @@ function mount(lets, opts) {
   // ================================================================ entity
   const persona = { name: 'Pip', tagline: '', traits: { speed: 0.5, distance: 0.5, chatty: 0.5, playful: 0.6 }, color: null, pace: 0 };
   const saved = loadProfile();
-  const P = { start: Date.now(), speeds: [], gaps: [], reg: { tl: 0, tr: 0, bl: 0, br: 0, c: 0 }, clicks: 0, idleMs: 0, summons: 0, picks: 0, dismisses: 0,
+  const P = { start: Date.now(), speeds: [], gaps: [], reg: { tl: 0, tr: 0, bl: 0, br: 0, c: 0 }, clicks: 0, idleMs: 0, summons: 0, picks: 0, dismisses: 0, secrets: 0,
     lastInput: performance.now(), lastAction: 0, winT: 0, winD: 0, dirty: false, lastEmit: Date.now() };
   const E = { shown: false, x: innerWidth - 150, y: innerHeight - 46, vx: 0, vy: 0, px: null, py: null, ax: 0, ay: 0, sideX: 1, sideY: -1,
     offX: 66, offY: 50, omega: 9, parked: false, hold: 0, caught: false, hover: false, still: false, drag: false, lx: 0, ly: 0, peak: false, raf: 0, last: 0,
     mood: 'idle', base: 'idle', over: '', typing: false, dozing: false, blinkT: 0, bubbleT: 0 };
   E.tx = E.tlx = E.x; E.ty = E.tly = E.y;
+  // reactions (R), secret moves found in this window (S), gesture detectors (D), dragging the companion (W)
+  const R = { name: '', t: 0, sub: 0, anims: [], last: {}, look: null };
+  const S = new Set();
+  const D = { fast: [], sx: { dir: 0, run: 0, at: 0, revs: [] }, sy: { dir: 0, run: 0, at: 0, revs: [] }, ang: null, cum: 0, turns: [], wheel: [], clicks: [],
+    boops: 0, boopT: 0, awayAt: 0, blushT: 0, yawnAt: 30000, yawned: false, keys: [], word: '', wordT: 0 };
+  const W = { down: null, on: false, gx: 0, gy: 0, press: Infinity, eat: false };
 
   const eLayer = h('div', { class: 'lets-entity-layer', 'data-mood': 'idle', 'data-shown': 'false', 'data-still': 'false' });
   const trail = h('div', { class: 'lets-e-trail', 'aria-hidden': 'true' });
@@ -384,7 +440,7 @@ function mount(lets, opts) {
     if (!E.shown) return;
     const dt = clamp((t - E.last) / 1000, 0.001, 0.05);
     E.last = t;
-    if (E.px != null && !M.open && !E.caught && !E.parked) {
+    if (E.px != null && !M.open && !E.caught && !E.parked && !W.on) {
       const dx = E.px - E.ax, dy = E.py - E.ay, d = Math.hypot(dx, dy);
       if (d > DEAD) { const k = 1 - DEAD / d; E.ax += dx * k; E.ay += dy * k; }   // dead-zone leash: micro-moves never move it
       const g = targetFor(E.ax, E.ay);
@@ -392,14 +448,16 @@ function mount(lets, opts) {
     }
     if (RM.matches) { E.x = E.tlx = E.tx; E.y = E.tly = E.ty; E.vx = E.vy = 0; }
     else {
-      let s = spring(E.x - E.tx, E.vx, E.omega, dt); E.x = E.tx + s[0]; E.vx = s[1];
-      s = spring(E.y - E.ty, E.vy, E.omega, dt); E.y = E.ty + s[0]; E.vy = s[1];
+      const w = W.on ? 26 : E.omega;                        // dragged ("wheee"): stick to the pointer
+      let s = spring(E.x - E.tx, E.vx, w, dt); E.x = E.tx + s[0]; E.vx = s[1];
+      s = spring(E.y - E.ty, E.vy, w, dt); E.y = E.ty + s[0]; E.vy = s[1];
       const k = 1 - Math.exp(-dt * 7); E.tlx += (E.x - E.tlx) * k; E.tly += (E.y - E.tly) * k;
     }
     const sp = Math.hypot(E.vx, E.vy);
     if (sp > 450) E.peak = true; else if (E.peak && sp < 40) { E.peak = false; squish(0.8); }   // squash on arrival
     let lx = 0, ly = 0;                                     // pupils: glance toward the pointer
-    if (E.mood === 'thinking') { lx = 1.1; ly = -1.6; }
+    if (R.look) { lx = R.look.x; ly = R.look.y; }           // a reaction looks somewhere on purpose (peek, blush)
+    else if (E.mood === 'thinking') { lx = 1.1; ly = -1.6; }
     else if (E.mood !== 'sleepy' && E.px != null) {
       const dx = E.px - E.x, dy = E.py - E.y, d = Math.hypot(dx, dy) || 1, m = Math.min(1, d / 140);
       lx = (dx / d) * 1.4 * m; ly = (dy / d) * 1.7 * m;
@@ -462,6 +520,11 @@ function mount(lets, opts) {
     if (m === E.mood) return;
     E.mood = m; eLayer.dataset.mood = m;
     if (fx) { if (m === 'alert') shake(); else if (m === 'happy' || m === 'proud') hop(); else if (m === 'curious') squish(0.5); }
+    const cap = m === 'sleepy' && new Date().getHours() < 5;   // sleepy after midnight: night cap (a secret)
+    if (cap !== (eLayer.dataset.cap === 'true')) {
+      eLayer.dataset.cap = String(cap);
+      if (cap && E.shown && auto('nightcap', { force: true })) secret('nightcap');
+    }
     kick();
   }
   function setMood(m) { if (!MOODS.includes(m)) return false; E.base = m; E.dozing = false; refreshMood(); return true; }
@@ -546,6 +609,7 @@ function mount(lets, opts) {
     for (const fn of pickCbs) safe(fn, { ...item, source: it.src });
   }
   function activate(x, y, keyboard) {
+    if (root.dataset.closing === 'true') return;            // saying goodbye: no menu
     if (M.open) { closeMenu(keyboard); return; }
     hideBubble();
     const ctx = ctxOf({ reason: 'click', x, y });
@@ -581,13 +645,14 @@ function mount(lets, opts) {
     P.lastInput = t; P.dirty = true;
     if (E.still) { E.still = false; eLayer.dataset.still = 'false'; }
     if (E.dozing) { E.dozing = false; refreshMood(false); hop(); }
+    if (D.yawned) { D.yawned = false; D.yawnAt = 25000 + Math.random() * 15000; }   // the next idle stretch yawns again
   }
   function act(t) { if (P.lastAction) { const g = t - P.lastAction; if (g < 300000) keep(P.gaps, g, 300); } P.lastAction = t; }
   function profileData() {
     const now = performance.now(), sessionMs = Date.now() - P.start, tot = Object.values(P.reg).reduce((a, b) => a + b, 0) || 1, regions = {};
     for (const k in P.reg) regions[k] = +(P.reg[k] / tot).toFixed(2);
     return { pace: Math.round(median(P.speeds)), clickRate: +(P.clicks / Math.max(0.25, sessionMs / 60000)).toFixed(1), dwell: Math.round(median(P.gaps)), regions,
-      idleMs: Math.round(P.idleMs + (now - P.lastInput > 2500 ? now - P.lastInput : 0)), sessionMs, summons: P.summons, picks: P.picks, dismisses: P.dismisses };
+      idleMs: Math.round(P.idleMs + (now - P.lastInput > 2500 ? now - P.lastInput : 0)), sessionMs, summons: P.summons, picks: P.picks, dismisses: P.dismisses, secrets: P.secrets };
   }
   function emitProfile(force) {
     if (!P.dirty && !force) return;
@@ -598,13 +663,28 @@ function mount(lets, opts) {
     retune();
   }
 
-  on(sprite, 'click', (e) => activate(e.clientX, e.clientY, false));
+  on(sprite, 'click', (e) => {
+    if (W.eat) { W.eat = false; return; }                  // the end of a drag ("wheee"), not a click
+    const quick = W.press < 350;
+    W.press = Infinity;
+    activate(e.clientX, e.clientY, false);
+    if (quick) boop(e.detail === 2);                        // a boop still opens the menu; a double-click's 2nd click leaves the stage to `spin`
+  });
+  on(sprite, 'dblclick', (e) => { e.preventDefault(); if (auto('spin', { force: !S.has('spin') })) secret('spin'); });
+  on(sprite, 'pointerdown', (e) => {
+    if (e.button !== 0) return;
+    W.down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+    W.gx = E.x - e.clientX; W.gy = E.y - e.clientY;         // grab point, kept under the pointer while dragged
+  });
   on(sprite, 'keydown', (e) => {
     if ((e.key === 'Enter' || e.key === ' ') && !e.ctrlKey) { e.preventDefault(); activate(E.x, E.y, true); }
     else if (e.key === 'ArrowDown' && M.open) { e.preventDefault(); menu.querySelector('.lets-menu-item')?.focus(); }
   });
-  on(sprite, 'pointerenter', () => { E.hover = true; E.caught = true; setCatchable(true); });
-  on(sprite, 'pointerleave', () => { E.hover = false; });
+  on(sprite, 'pointerenter', () => {
+    E.hover = true; E.caught = true; setCatchable(true);
+    cancel(D.blushT); D.blushT = later(() => { if (E.hover && !M.open && !W.on) auto('blush'); }, 1500);   // hovered a while: shy
+  });
+  on(sprite, 'pointerleave', () => { E.hover = false; cancel(D.blushT); });
   on(bubble, 'click', hideBubble);
   on(menu, 'keydown', (e) => {
     const items = [...menu.querySelectorAll('.lets-menu-item')], i = items.indexOf(document.activeElement);
@@ -615,12 +695,14 @@ function mount(lets, opts) {
 
   on(window, 'pointermove', (e) => {
     const t = performance.now(), x = e.clientX, y = e.clientY;
+    if (W.down && !W.on && (e.buttons & 1) && Math.hypot(x - W.down.x, y - W.down.y) > 60) startWheee();
     if (E.px != null) {
       const mx = x - E.px, my = y - E.py;
       P.winD += Math.hypot(mx, my);
       if (t - P.winT >= 100) {                              // 100 ms windows → speed + region samples
         const v = P.winD / ((t - P.winT) / 1000);
         if (P.winT && v > 30 && v < 20000) keep(P.speeds, v, 400);
+        if (P.winT && !W.on) fastMotion(t, v);
         const rx = x / innerWidth, ry = y / innerHeight;
         P.reg[rx > 0.3 && rx < 0.7 && ry > 0.3 && ry < 0.7 ? 'c' : (ry < 0.5 ? 't' : 'b') + (rx < 0.5 ? 'l' : 'r')]++;
         P.winT = t; P.winD = 0;
@@ -630,21 +712,28 @@ function mount(lets, opts) {
       E.spd = Math.hypot(mx, my) / (dtm / 1000);
       E.lastMoveT = t;
       const ex = E.x - x, ey = E.y - y, de = Math.hypot(ex, ey);   // let the human catch it: hold while approached slowly
-      if (E.drag) E.caught = false;                                   // never park in the way of a drag
+      if (W.on) { const r = SIZE / 2 + 4; E.tx = clamp(x + W.gx, r, innerWidth - r); E.ty = clamp(y + W.gy, r, innerHeight - r); E.caught = true; }
+      else if (E.drag) E.caught = false;                              // never park in the way of a drag
       else if (E.hover && E.spd < 900) E.caught = true;
       else if (de < 58 && E.spd < 350) E.caught = true;              // slow and near: it is being reached for
       else if (de > 110 || E.spd > 700) E.caught = false;            // far, or the pointer is just passing through
       setCatchable(E.caught || M.open);
+      if (!W.on) gestures(x, y, mx, my, t);
     }
     E.px = x; E.py = y;
     if (E.parked && t > E.hold) { E.parked = false; E.ax = x; E.ay = y; }
     touch(t);
+    if (D.awayAt) { const away = t - D.awayAt; D.awayAt = 0; if (away > 10000) auto('peek'); }   // back after a while: peek
     kick();
   }, { passive: true });
   on(window, 'pointerdown', (e) => {
     const t = performance.now();
     touch(t); act(t);
     if (e.button === 0) P.clicks++;
+    if (e.button === 0 && !root.contains(e.target)) {        // a click storm on the unique's surface startles it
+      keep(D.clicks, t, 6);
+      if (D.clicks.length >= 6 && t - D.clicks[0] <= 1500) { D.clicks.length = 0; auto('startled'); }
+    }
     if (M.open && !wrap.contains(e.target)) closeMenu();
     // a press on the unique's own surface starts a drag: the sprite steps aside and stops taking pointer events
     if (e.button === 0 && !root.contains(e.target)) setDrag(true);
@@ -653,6 +742,10 @@ function mount(lets, opts) {
   on(window, 'pointerup', endDrag, true);
   on(window, 'pointercancel', endDrag, true);
   on(window, 'blur', endDrag);
+  const endPress = () => { if (W.down) { W.press = performance.now() - W.down.t; W.down = null; } if (W.on) endWheee(); };
+  on(window, 'pointerup', endPress, true);
+  on(window, 'pointercancel', endPress, true);
+  on(window, 'blur', endPress);
   function setDrag(on) {
     if (E.drag === on) return;
     E.drag = on;
@@ -665,15 +758,32 @@ function mount(lets, opts) {
     const v = on ? 'true' : 'false';
     if (eLayer.dataset.catchable !== v) eLayer.dataset.catchable = v;
   }
-  on(window, 'wheel', () => touch(performance.now()), { passive: true });
+  on(window, 'wheel', (e) => {
+    const t = performance.now();
+    touch(t);
+    // a fast wheel / zoom burst (≥ 1500 px in 0.6 s; pinch-zoom deltas are small, so they count 4×) → whoa
+    const k = (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1) * (e.ctrlKey ? 4 : 1);
+    keep(D.wheel, [t, (Math.abs(e.deltaY) + Math.abs(e.deltaX)) * k], 120);
+    while (t - D.wheel[0][0] > 600) D.wheel.shift();
+    if (D.wheel.reduce((sum, w) => sum + w[1], 0) >= 1500) { D.wheel.length = 0; auto('whoa'); }
+  }, { passive: true });
+  // the pointer leaves the window: wave (and remember when, for a peek on return)
+  on(document, 'mouseout', (e) => {
+    if (e.relatedTarget) return;
+    D.awayAt = performance.now();
+    if (!E.drag && !W.on) auto('wave');
+  });
+  on(document, 'visibilitychange', () => { if (document.hidden && !D.awayAt) D.awayAt = performance.now(); });
   on(window, 'resize', () => {
     const r = SIZE / 2 + 6;
     // never moved by the human yet (or the viewport had no size at boot): re-home to the corner
     if (E.px == null && !E.caught) { E.tx = E.tlx = innerWidth - 150; E.ty = E.tly = innerHeight - 46; }
+    if (root.dataset.closing === 'true') { E.tx = innerWidth / 2; E.ty = innerHeight / 2; }   // stay centred for the farewell
     E.tx = clamp(E.tx, r, innerWidth - r); E.ty = clamp(E.ty, r, innerHeight - r); kick();
   });
   on(window, 'beforeunload', () => emitProfile(true));
   on(host, 'contextmenu', (e) => {
+    if (root.dataset.closing === 'true') { e.preventDefault(); return; }
     const t = e.target;
     if (isTextField(t) || t.closest?.('.lets-chat, .lets-card, .lets-menu, .lets-bubble, .lets-toast')) return;
     const x = e.clientX || E.px || innerWidth / 2, y = e.clientY || E.py || innerHeight / 2;
@@ -685,9 +795,162 @@ function mount(lets, opts) {
   const tick = setInterval(() => {
     const idle = performance.now() - P.lastInput;
     if (!E.still && idle > 2500) { E.still = true; eLayer.dataset.still = 'true'; }   // idle bob
+    // idle 25–40 s: one yawn (then, at 45 s, it dozes off)
+    if (!D.yawned && !E.dozing && E.shown && !document.hidden && idle > D.yawnAt && E.base === 'idle' && !E.over && !E.typing && !R.name && root.dataset.closing !== 'true') { D.yawned = true; auto('yawn'); }
     if (!E.dozing && E.shown && idle > 45000 && E.base === 'idle' && !E.over && !E.typing) { E.dozing = true; refreshMood(false); }
     if (Date.now() - P.lastEmit >= 60000) emitProfile();
   }, 1000);
+
+  // ---- reactions: short expressions. CSS draws the look (data-react / data-face / data-mouth / data-fx on the
+  // entity layer), WAAPI the motion. One at a time; every name has a cooldown so the companion never nags.
+  const auto = (name, o) => play(name, o, true);
+  function setData(k, v) { if (v) eLayer.dataset[k] = v; else delete eLayer.dataset[k]; }
+  function endReact() {
+    cancel(R.t); cancel(R.sub); R.t = R.sub = 0;
+    for (const a of R.anims.splice(0)) a.cancel();
+    if (!R.name) return;
+    R.name = ''; R.look = null;
+    for (const k of ['react', 'face', 'mouth', 'fx']) delete eLayer.dataset[k];
+    kick();
+  }
+  /**
+   * Play reaction `name` for `o.ms` (300–8000; default per reaction). A new reaction replaces the current one,
+   * except the farewell wave. Gesture triggers need a visible companion; API calls pop it in.
+   * @returns {boolean} false for an unknown name, while cooling down (unless `o.force`), or when blocked
+   */
+  function play(name, o = {}, byGesture = false) {
+    const spec = Object.hasOwn(REACT, name) ? REACT[name] : null;
+    if (!spec) return false;
+    if (R.name === 'wave' && root.dataset.closing === 'true' && name !== 'wave') return false;
+    const t = performance.now();
+    if (!o.force && t - (R.last[name] ?? -Infinity) < spec.cd) return false;
+    if (!E.shown) { if (byGesture) return false; show(E.px != null ? targetFor(E.px, E.py) : null); }
+    endReact();
+    let ms = clamp(num(o.ms, spec.ms), 300, 8000);
+    if (RM.matches) ms = Math.min(ms, 1100);                  // reduced motion: no motion, about a second of face/aura
+    R.name = name; R.last[name] = t;
+    setData('react', name); setData('face', spec.face); setData('mouth', spec.mouth); setData('fx', spec.fx);
+    const dir = Math.sign((E.px ?? E.x) - E.x) || 1;
+    if (name === 'peek') R.look = { x: 1.8 * dir, y: -0.4 };       // eyes dart to the pointer
+    else if (name === 'blush') R.look = { x: -1.4 * dir, y: 1.5 };  // shy: looks away and down
+    if (name === 'dizzy') R.sub = later(() => setData('face', 'x'), ms * 0.72);   // @_@ … x_x
+    R.anims = motion(name, ms, dir).filter(Boolean);
+    if (!o.hold) R.t = later(endReact, ms);
+    kick();
+    return true;
+  }
+  /** WAAPI motion of a reaction: the body moves on `squash`, tilts on `lean` (added to the follow tilt). None under reduced motion. */
+  function motion(name, ms, dir) {
+    const at = (transform, offset) => ({ transform, offset });
+    const body = (frames, o) => anim(squash, frames.map((f) => (typeof f === 'string' ? { transform: f } : f)), { duration: ms, easing: 'ease-in-out', ...o });
+    const tilt = (degs, o) => anim(lean, degs.map((d) => (Array.isArray(d) ? at(`rotate(${d[0]}deg)`, d[1]) : at(`rotate(${d}deg)`))), { duration: ms, easing: 'ease-in-out', composite: 'add', ...o });
+    const up = 'translateY(-12px) scale(.94,1.07)', land = 'scale(1.08,.92)';
+    switch (name) {
+      case 'dizzy': return [tilt([0, 14, -12, 10, -8, 5, -2, 0]), body(['none', 'translateX(3px)', 'translateX(-3px)', 'translateX(2px)', 'none'])];
+      case 'whoa': return [body(['none', at('translateY(2px) scale(1.07,.9)', 0.2), at('translateY(1px) scale(1.03,.95)', 0.75), 'none']), tilt([0, [-9, 0.2], [-7, 0.75], 0])];
+      case 'startled': { const d = Math.min(ms, 700); return [body(['none', at('translateY(-14px) scale(.9,1.12)', 0.22), at('scale(1.12,.88)', 0.45), at('translateY(-3px)', 0.62), 'none'], { duration: d, easing: 'ease-out' }), tilt([0, -4, 4, -3, 3, 0], { duration: d })]; }
+      case 'gasp': return [body(['none', at('scale(.9,1.08)', 0.2), at('scale(.92,1.06)', 0.8), 'none'])];
+      case 'oops': return [tilt([0, [-13, 0.25], [-11, 0.75], 0]), body(['none', at('translateY(1px) scale(1.03,.97)', 0.3), 'none'], { duration: 500 })];
+      case 'wink': return [body(['none', at('scale(1.06,.94)', 0.3), at('scale(.98,1.02)', 0.6), 'none'], { duration: 500 })];
+      case 'cheer': return [body(['none', at(up, 0.18), at(land, 0.36), at('none', 0.5), at(up, 0.68), at(land, 0.86), 'none'], { duration: Math.min(ms, 1100) })];
+      case 'blush': return [tilt([0, 4, -4, 3, -2, 0], { duration: Math.min(ms, 1000) })];
+      case 'boop': return [body(['none', at('scale(1.16,.84)', 0.25), at('scale(.94,1.06)', 0.6), 'none'], { duration: 450, easing: 'ease-out' })];
+      case 'yawn': return [body(['none', at('translateY(-2px) scale(.95,1.08)', 0.35), at('scale(.96,1.07)', 0.7), 'none']), tilt([0, [-3, 0.35], [3, 0.7], 0])];
+      case 'peek': return [tilt([0, [10 * dir, 0.3], [10 * dir, 0.75], 0]), body(['none', at(`translateX(${4 * dir}px)`, 0.3), at(`translateX(${4 * dir}px)`, 0.75), 'none'])];
+      case 'nod': return [body(['none', 'translateY(3px) scale(1.03,.97)', 'none', 'translateY(3px) scale(1.03,.97)', 'none'])];
+      case 'shake-no': return [body([0, -4, 4, -4, 4, 0].map((x) => `translateX(${x}px)`)), tilt([0, -5, 5, -5, 5, 0])];
+      case 'wave': return [body(['none', at('translateY(-6px)', 0.15), at('translateY(-6px)', 0.85), 'none']), tilt([0, 9, -9, 9, -9, 7, 0])];
+      case 'spin': { const d = Math.min(ms, 900); return [tilt([0, 360], { duration: d }), body(['none', at('translateY(-8px)', 0.45), 'none'], { duration: d })]; }
+      case 'dance': case 'disco': {                        // a groove on the beat: dip, sway left, dip, sway right…
+        const beats = Math.max(4, Math.round(ms / 300)), moves = [], tilts = [];
+        for (let i = 0; i <= beats; i++) {
+          const end = i === 0 || i === beats, b = i % 4;
+          moves.push({ transform: end ? 'none' : ['translateY(2px) scale(1.05,.95)', 'translate(-5px,-3px)', 'translateY(2px) scale(1.05,.95)', 'translate(5px,-3px)'][b], easing: 'ease-in-out' });
+          tilts.push(end ? 0 : [0, -10, 0, 10][b]);
+        }
+        return [body(moves, { easing: 'linear' }), tilt(tilts, { easing: 'linear' })];
+      }
+      case 'sparkle': return [body(['none', at('translateY(-6px) scale(.97,1.04)', 0.3), at('scale(1.04,.96)', 0.55), 'none'], { duration: 600 })];
+      case 'nightcap': return [body(['none', at('scale(1.05,.95)', 0.3), 'none'], { duration: 600 })];
+      default: return [];                                   // wheee: the drag itself is the motion
+    }
+  }
+  /** First discovery of a secret move in this window: tell Claude once, count it, and celebrate with a bubble. */
+  function secret(name) {
+    if (S.has(name) || !SECRETS[name]) return;
+    S.add(name); P.secrets = S.size; P.dirty = true;
+    lets.emit('entity.secret', { name });
+    later(() => bubbleSay(`✦ Secret move found: **${SECRETS[name]}** (${S.size}/${Object.keys(SECRETS).length})`, 4200), 250);
+  }
+  /** A quick click on the companion: squish and a heart. Five in a row (each within 1.5 s) is the "boop streak" secret. */
+  function boop(silent) {
+    const t = performance.now();
+    D.boops = t - D.boopT < 1500 ? D.boops + 1 : 1; D.boopT = t;
+    const streak = D.boops >= 5;
+    if (streak) D.boops = 0;
+    if (streak && !S.has('boop')) { if (auto('boop', { force: true })) secret('boop'); }
+    else if (!silent) auto('boop');
+  }
+  /** Dragging the caught companion ("wheee"): it follows the pointer directly, squints, and lands on release. */
+  function startWheee() {
+    W.on = true; cancel(D.blushT); closeMenu(); hideBubble();
+    E.caught = true; E.parked = false; setCatchable(true);
+    eLayer.dataset.wheee = 'true';
+    try { sprite.setPointerCapture(W.down.id); } catch { /* the pointer is already gone */ }
+    if (auto('wheee', { force: true, hold: true })) secret('wheee');
+  }
+  function endWheee() {
+    W.on = false; W.eat = true; later(() => { W.eat = false; }, 80);   // swallow the click that ends the drag
+    delete eLayer.dataset.wheee;
+    if (R.name === 'wheee') endReact();
+    squish(0.8); kick();
+  }
+  /** One axis of a mouse shake: true on the 3rd quick reversal (each swing ≥ 40 px in < 350 ms) within 1 s. */
+  function swing(s, d, t) {
+    if (Math.abs(d) < 2) return false;
+    const dir = d > 0 ? 1 : -1;
+    if (dir === s.dir) { s.run += Math.abs(d); return false; }
+    const quick = s.dir !== 0 && s.run >= 40 && t - s.at < 350;
+    s.dir = dir; s.run = Math.abs(d); s.at = t;
+    if (!quick) { s.revs.length = 0; return false; }
+    s.revs.push(t);
+    while (t - s.revs[0] > 1000) s.revs.shift();
+    return s.revs.length >= 3;
+  }
+  /** Pointer gestures: a mouse shake makes the companion dizzy; circling it 2 turns in 3 s too (a secret). */
+  function gestures(x, y, mx, my, t) {
+    const a = swing(D.sx, mx, t), b = swing(D.sy, my, t);
+    if (a || b) { D.sx.revs.length = D.sy.revs.length = 0; auto('dizzy'); }
+    if (!E.shown) return;
+    const cx = x - E.x, cy = y - E.y, dc = Math.hypot(cx, cy);
+    if (dc < 20 || dc > 260) { D.ang = null; D.turns.length = 0; return; }
+    const ang = Math.atan2(cy, cx);
+    if (D.ang != null) { const da = ang - D.ang; D.cum += da - Math.round(da / (2 * Math.PI)) * 2 * Math.PI; }
+    D.ang = ang;
+    keep(D.turns, [t, D.cum], 600);
+    while (t - D.turns[0][0] > 3000) D.turns.shift();
+    if (Math.abs(D.cum - D.turns[0][1]) >= 4 * Math.PI) { D.turns.length = 0; if (auto('dizzy', { force: !S.has('dizzy') })) secret('dizzy'); }
+  }
+  /** ~1.5 s of very fast pointer travel (median ≥ 2500 px/s over the 100 ms samples) → dizzy. */
+  function fastMotion(t, v) {
+    keep(D.fast, [t, v], 30);
+    while (t - D.fast[0][0] > 1500) D.fast.shift();
+    if (D.fast.length >= 8 && t - D.fast[0][0] >= 1200 && median(D.fast.map((f) => f[1])) >= 2500) { D.fast.length = 0; auto('dizzy'); }
+  }
+  /** Keys outside text fields: Delete/Backspace → gasp, Ctrl+Z → oops, "pip" (or its name) → dance, Konami → disco. */
+  function keyMoves(e, t) {
+    if (e.repeat || e.isComposing || isTextField(e.target) || isTextField(document.activeElement)) return;
+    const k = String(e.key || ''), kk = k.length === 1 ? k.toLowerCase() : k, mod = e.ctrlKey || e.metaKey;
+    if (/^(Control|Shift|Alt|Meta)$/.test(k)) return;
+    keep(D.keys, kk, 10);
+    if (D.keys.join(' ') === KONAMI) { D.keys.length = 0; if (auto('disco', { force: !S.has('disco') })) secret('disco'); return; }
+    if (mod && !e.altKey && !e.shiftKey && kk === 'z') { auto('oops'); return; }
+    if ((k === 'Delete' || k === 'Backspace') && !mod && !e.altKey) { auto('gasp'); return; }
+    if (!/^[a-z]$/.test(kk) || mod || e.altKey) { D.word = ''; return; }
+    D.word = ((t - D.wordT < 1500 ? D.word : '') + kk).slice(-16); D.wordT = t;
+    const name = persona.name.toLowerCase();
+    if (D.word.endsWith('pip') || (/^[a-z]{3,16}$/.test(name) && D.word.endsWith(name))) { D.word = ''; if (auto('dance', { force: !S.has('dance') })) secret('dance'); }
+  }
 
   const entity = {
     /** Pop the sprite in at `at` ({x,y}) or where it last was. No event is emitted. */
@@ -700,6 +963,8 @@ function mount(lets, opts) {
     say: (t, o) => say(typeof t === 'string' ? { ...o, text: t } : t || {}),
     /** Set the base mood; returns false for an unknown mood. */
     mood: (m) => setMood(m),
+    /** Play a reaction (`dizzy`, `cheer`, `wink`, … see docs/ENTITY.md) with opts {ms?, force?}. False for an unknown name or while it cools down. */
+    react: (name, o) => play(String(name), { ms: o?.ms, force: !!o?.force }),
     /** Add (or with replace=true, replace) click-menu suggestions. */
     suggest: (items, replace = false) => suggest(items, replace),
     /** Ease to {x,y} or {to:"cursor"|"center"|"<selector>"}. */
@@ -1001,6 +1266,50 @@ function mount(lets, opts) {
     }
   }
 
+  // =============================================================== farewell
+  // session.close {reason, text?, ms?}: wave, a glass overlay, then window.close(). A tab the page did not open
+  // itself may refuse to close, so the overlay then stays with a hint and a Keep working button (session.stay).
+  const F = { el: null, text: null, sub: null, btn: null, t: 0 };
+  function farewell(d = {}) {
+    const reason = typeof d.reason === 'string' && d.reason ? d.reason.slice(0, 40) : 'handoff';
+    const text = typeof d.text === 'string' && d.text.trim() ? d.text.trim().slice(0, 240) : FAREWELL[reason] || FAREWELL.handoff;
+    const ms = clamp(num(d.ms, 1400), 300, 8000);
+    if (!F.el) {
+      const id = `lets-fw-${++uid}`;
+      F.text = h('p', { class: 'lets-farewell-text', id });
+      F.sub = h('p', { class: 'lets-farewell-sub', 'aria-live': 'polite' });
+      F.btn = h('button', { class: 'lets-btn lets-btn-primary', type: 'button', text: 'Keep working', onclick: () => stay() });
+      F.el = h('div', { class: 'lets-farewell', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': id }, h('div', { class: 'lets-farewell-card' }, F.text, F.sub, F.btn));
+    }
+    cancel(F.t); closeMenu(); hideBubble();
+    F.text.replaceChildren(mdLite(text));
+    F.sub.textContent = 'This window is closing…';
+    root.dataset.closing = 'true';
+    if (!F.el.isConnected) root.append(F.el);
+    moveTo({ to: 'center' }); E.hold = Infinity;              // stay centred until the window goes (or Keep working)
+    play('wave', { ms: Math.max(1600, ms + 300), force: true });
+    bubbleSay('Bye! ✦', ms + 600);
+    lets.emitNow('session.closing', { reason });
+    F.btn.focus({ preventScroll: true });
+    F.t = later(() => {
+      try { window.close(); } catch { /* not ours to close */ }
+      F.t = later(() => { if (document.visibilityState === 'visible' && root.dataset.closing === 'true') F.sub.textContent = "This tab can't close itself — Claude will close it, or keep working here."; }, 350);
+    }, ms);
+  }
+  /** Keep working: drop the overlay, follow the pointer again, tell the host (session.stay). */
+  function stay() {
+    if (root.dataset.closing !== 'true') return;
+    cancel(F.t); delete root.dataset.closing;
+    const el = F.el, a = anim(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: 'ease-in' });
+    a ? a.finished.then(() => { if (root.dataset.closing !== 'true') el.remove(); }, () => {}) : el.remove();
+    if (R.name === 'wave') endReact();
+    hideBubble();
+    E.parked = false; E.hold = 0;
+    if (E.px != null) { E.ax = E.px; E.ay = E.py; }
+    kick();
+    lets.emit('session.stay', {});
+  }
+
   // ===================================================== LIP command wiring
   const CMD = {
     'entity.say': (d) => say(d),
@@ -1010,6 +1319,11 @@ function mount(lets, opts) {
     'entity.show': () => show(E.shown || E.px == null ? null : targetFor(E.px, E.py)),
     'entity.hide': () => hide(),
     'entity.persona': (d) => applyPersona(d),
+    'entity.react': (d) => {
+      const name = String(d.name ?? '');
+      if (!Object.hasOwn(REACT, name)) throw new Error(`entity.react: unknown reaction "${name}"`);
+      play(name, { ms: d.ms, force: !!d.force });
+    },
     'chat.open': () => chatSet(true),
     'chat.close': () => chatSet(false),
     'chat.say': (d, m) => {
@@ -1025,6 +1339,8 @@ function mount(lets, opts) {
     'ui.theme': (d) => { if (typeof d.name === 'string') document.documentElement.dataset.letsTheme = d.name; if (d.vars) theme(d.vars); },
     // host: is Claude blocked in `listen` right now? (shown as a dot in the chat header and on the sprite)
     'session.listening': (d) => setListening(!!d.on),
+    // host or Claude: say goodbye and close this window (handoff after "Send to Claude", idle, or Claude's call)
+    'session.close': (d) => farewell(d),
   };
   const L = { on: null };
   function setListening(on) {
@@ -1053,7 +1369,9 @@ function mount(lets, opts) {
     const t = performance.now();
     touch(t);
     if (!/^(Control|Shift|Alt|Meta)$/.test(e.key)) act(t);
+    keyMoves(e, t);
     if (e.key === 'Escape') {
+      if (root.dataset.closing === 'true') { e.preventDefault(); stay(); return; }
       if (M.open) { e.preventDefault(); closeMenu(true); } else if (bubble.dataset.open === 'true') hideBubble();
       return;
     }
@@ -1070,6 +1388,7 @@ function mount(lets, opts) {
     emitProfile();
     clearInterval(tick);
     cancelAnimationFrame(E.raf); E.shown = false;
+    safe(endReact);
     for (const off of offs.splice(0)) safe(off);
     for (const id of timers) clearTimeout(id);
     timers.clear();
@@ -1137,6 +1456,7 @@ function bootDemo(Lets) {
   else {
     lets.status = 'open';
     lets._flush = function flush() { clearTimeout(this._flushTimer); this._flushTimer = null; this._queue.length = 0; };
+    window.close = () => log('window.close() → the offline demo stays open (try Keep working)');
     lets.upload = async (blob, { source = 'file', componentId = '' } = {}) => {
       let w = 0, hh = 0;
       try { const b = await createImageBitmap(blob); w = b.width; hh = b.height; b.close(); } catch { /* not an image */ }
@@ -1183,13 +1503,15 @@ function bootDemo(Lets) {
         b('show', () => cmd('entity.show')), b('hide', () => cmd('entity.hide')),
         b('persona', () => { alt = !alt; cmd('entity.persona', alt ? { name: 'Nova', traits: { speed: 0.9, distance: 0.3, chatty: 1, playful: 1 }, color: '#e0559b' } : { name: 'Pip', traits: { speed: 0.5, distance: 0.5, chatty: 0.5, playful: 0.6 }, color: '' }); })),
       row('mood', ...MOODS.map((m) => b(m, () => cmd('entity.mood', { mood: m })))),
+      row('reactions', ...Object.keys(REACT).map((n) => b(n, () => cmd('entity.react', { name: n, force: true })))),
       row('chat', b('stream reply', () => { cmd('chat.open'); streamReply('Sure! Here is a **streamed** reply, with a cursor while it streams.\n```js\nconst answer = 42;\n```\nDone.'); }),
         b('typing', () => { typingOn = !typingOn; cmd('chat.typing', { on: typingOn }); }), b('toggle', () => shell.chat.toggle(true))),
       row('components', ...Object.keys(SAMPLES).map((t) => b(t, () => { const id = `demo-${t}-${++k}`; cmd('component.create', { id, ...SAMPLES[t](id) }); }))),
       row('ui', ...['info', 'ok', 'warn', 'error'].map((l) => b(l, () => cmd('ui.toast', { text: `A ${l} toast`, level: l }))),
-        b('theme', () => { warm = !warm; cmd('ui.theme', { name: warm ? 'ember' : 'deep-violet', vars: { accent: warm ? '#ff9f6b' : '', 'accent-2': warm ? '#ffd166' : '' } }); })));
+        b('theme', () => { warm = !warm; cmd('ui.theme', { name: warm ? 'ember' : 'deep-violet', vars: { accent: warm ? '#ff9f6b' : '', 'accent-2': warm ? '#ffd166' : '' } }); }),
+        b('session.close', () => cmd('session.close', { reason: 'handoff', text: 'Sent to Claude ✦ see you in Claude Code', ms: 1400 }))));
   });
   shell.components.create({ id: 'demo-controls', type: 'demo-controls', slot: 'panel', props: { title: live ? 'Shell demo (live host)' : 'Shell demo (offline loopback)' } });
-  shell.components.create({ id: 'demo-help', type: 'note', props: { title: 'Try me', text: '**Right-click** anywhere or **Ctrl+Space**: summon / dismiss.\n**Click** the companion for suggestions, **Esc** closes.\n**Ctrl+/** toggles chat. **Paste** or **drop** an image anywhere.' } });
+  shell.components.create({ id: 'demo-help', type: 'note', props: { title: 'Try me', text: '**Right-click** anywhere or **Ctrl+Space**: summon / dismiss.\n**Click** the companion for suggestions, **Esc** closes.\n**Ctrl+/** toggles chat. **Paste** or **drop** an image anywhere.\nShake the mouse, hover or boop the companion… it has a few *secret moves* too.' } });
   shell.components.create({ id: 'demo-log', type: 'code', props: { title: 'Events → Claude', lang: 'lip', code: '(nothing yet)' } });
 }

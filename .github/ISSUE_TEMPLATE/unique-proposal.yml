@@ -1,0 +1,104 @@
+name: Propose a unique for the defaults
+description: Ask for a unique to be added to defaults.json, the list every install gets
+title: "[unique] "
+labels: ["unique-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `defaults.json` is the approved list of uniques every installation gets. Today it holds one entry (`graph`). New entries are proposed here, and a unique must be **store-verified first**:
+
+        1. Build it from the template (https://github.com/TikoTikTok/lets-unique-template).
+        2. Open a PR to the store (https://github.com/TikoTikTok/lets-store) with its `index.json` entry.
+        3. A maintainer reviews it and sets `"verified": true`.
+        4. Then file this form, and it is discussed for the defaults.
+
+        Just want your unique available to people who look for it? Steps 1 to 3 are enough: it will be installable with `/lets store <name>`. See docs/COMMUNITY.md.
+  - type: input
+    id: name
+    attributes:
+      label: Unique name
+      description: "Lowercase, kebab-case, 2 to 32 characters, same as `name` in unique.json."
+      placeholder: "timeline"
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: Repository URL
+      description: "A git URL the engine can clone (https, git@ or ssh)."
+      placeholder: "https://github.com/you/lets-unique-timeline"
+    validations:
+      required: true
+  - type: input
+    id: oneline
+    attributes:
+      label: One line
+      description: What the human does with it, in one sentence.
+      placeholder: "Drag spans on a timeline while Claude reads the gaps."
+    validations:
+      required: true
+  - type: textarea
+    id: human
+    attributes:
+      label: What does the human do with it?
+      description: A short walk-through from the human's side. What do they point at, draw, drag or say, and what does Claude do back?
+    validations:
+      required: true
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Permissions it needs
+      description: "Paste the `permissions` block from unique.json and say why each entry is needed. `{ \"fs.write\": [], \"net\": [] }` is the best answer."
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: store
+    attributes:
+      label: Is there a store entry yet?
+      options:
+        - "Yes, merged in lets-store"
+        - "Yes, a PR to lets-store is open"
+        - "No, not yet"
+    validations:
+      required: true
+  - type: input
+    id: store-link
+    attributes:
+      label: Link to the store entry or PR
+      placeholder: "https://github.com/TikoTikTok/lets-store/pull/..."
+  - type: dropdown
+    id: verified
+    attributes:
+      label: Is the store entry verified?
+      description: "That is, does it have `\"verified\": true` in lets-store's index.json? A proposal can wait for this."
+      options:
+        - "Yes, verified: true"
+        - "Not yet"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why should it be a default?
+      description: "Defaults are installed for everyone, so the bar is high. Who is it for, what does it do that graph does not, what could go wrong, and who will maintain it?"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: "`node engine/bin/lets.mjs validate <dir>` exits 0 for it."
+          required: true
+        - label: "It is static only (HTML, ES modules, CSS), with no build step, no CDN, and no executables or binaries."
+          required: true
+        - label: Every event and command type starts with a domain it owns, and no reserved domain is used.
+          required: true
+        - label: Its GUIDE.md exists and is under about 1,200 words.
+          required: true
+        - label: It states a license (MIT-compatible preferred).
+          required: true
+        - label: I understand that its text reaches Claude as events and that the maintainers will review it with that in mind.
+          required: true

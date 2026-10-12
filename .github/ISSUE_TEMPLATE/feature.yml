@@ -1,0 +1,66 @@
+name: Feature request
+description: An idea for the engine, Pip, the SDK, the protocol or the install
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome. Two quick routing notes:
+
+        - **A new medium** (voice, a timeline, a canvas, whatever) is best built as a unique. If you want it in everyone's install, use the "Propose a unique" form instead.
+        - **An idea for the graph board itself** belongs in https://github.com/TikoTikTok/lets-unique-graph.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation, not the solution. What is awkward or missing today?
+      placeholder: "When I come back to a board the next day, I would like..."
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+      description: Describe the behaviour you imagine, from the human's side first.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Engine (host, bus, MCP tools, sessions)
+        - Pip, the companion (moods, expressions, learning)
+        - SDK / shell (chat, components, theme)
+        - Protocol (LIP)
+        - Installer / INSTALL.md
+        - Store
+        - Docs
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: protocol
+    attributes:
+      label: Does it need a new LIP message?
+      description: "LIP changes are additive: a new message type that old receivers ignore, never a change to the envelope. If you know the shape, sketch it (type, direction, data)."
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: help
+    attributes:
+      label: Could you help build it?
+      options:
+        - "Yes, I would like to send a pull request"
+        - "Maybe, with some pointers"
+        - "No, I am only suggesting"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the existing issues.
+          required: true

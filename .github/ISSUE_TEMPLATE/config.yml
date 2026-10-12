@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Add or update a unique in the community store
+    url: https://github.com/TikoTikTok/lets-store
+    about: Store entries are pull requests to the lets-store repository (see its CONTRIBUTING.md). Use "Propose a unique for the defaults" here only after your entry is store-verified.
+  - name: Report a security vulnerability
+    url: https://github.com/TikoTikTok/lets/security/advisories/new
+    about: Please report security problems privately through a GitHub security advisory, not a public issue. See SECURITY.md.
+  - name: Issue with the graph board itself
+    url: https://github.com/TikoTikTok/lets-unique-graph/issues
+    about: The graph unique lives in its own repository. Bugs about the board (nodes, layout, toolbar) go there.

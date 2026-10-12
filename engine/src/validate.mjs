@@ -8,7 +8,8 @@
  */
 export function validate(schema, value, root = schema, path = '$') {
   const errors = [];
-  check(schema, value, root, path, errors);
+  if (!schema || typeof schema !== 'object') return { ok: false, errors: [`${path}: schema missing or not loadable`] };
+  try { check(schema, value, root, path, errors); } catch (err) { errors.push(`${path}: validator error: ${err?.message || err}`); }
   return { ok: errors.length === 0, errors };
 }
 
@@ -38,6 +39,7 @@ function typeMatches(expected, v) {
 function check(schema, v, root, path, errors) {
   if (schema === true) return;
   if (schema === false) { errors.push(`${path}: schema forbids value`); return; }
+  if (!schema || typeof schema !== 'object') { errors.push(`${path}: invalid subschema`); return; }
   if (schema.$ref) { check(resolveRef(schema.$ref, root), v, root, path, errors); return; }
 
   if (schema.type) {

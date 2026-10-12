@@ -7,6 +7,7 @@
  *   lets validate [dir]                        validate a unique folder (default: every known unique)
  *   lets uniques                               list uniques
  *   lets entity                                print the companion brief
+ *   lets sessions [unique] [--rm ID]           list saved sessions (what was sent to Claude), or delete one
  *   lets install-skill                         install the bare `/lets` personal skill into ~/.claude/skills
  *   lets doctor                                check node/git/host state
  */
@@ -17,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { createEngine, makeLogger } from '../src/engine.mjs';
 import { inspectUnique, Registry } from '../src/registry.mjs';
 import { Entity } from '../src/entity.mjs';
+import { Sessions } from '../src/sessions.mjs';
 import { DIRS, ensureDirs, readJson } from '../src/paths.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -120,6 +122,17 @@ switch (cmd) {
     break;
   }
   case 'entity': { ensureDirs(); print(new Entity().brief()); break; }
+  case 'sessions': {
+    // saved sessions:  lets sessions [unique] [--rm ID] [--limit N]
+    ensureDirs();
+    const sessions = new Sessions({ registry: new Registry() });
+    if (flags.rm) { print({ removed: sessions.remove(positional[0] || 'graph', String(flags.rm)) }); break; }
+    const list = sessions.list({ unique: positional[0] || null, limit: Number(flags.limit) || 20 });
+    if (!list.length) { print('no saved sessions (press "Send to Claude" in a window to create one)'); break; }
+    for (const s of list) print(`${new Date(s.at).toISOString().slice(0, 16).replace('T', ' ')}  ${s.unique.padEnd(10)} ${s.id.padEnd(14)} ${(s.label || '').padEnd(28)} ${s.summary}`);
+    print(`handoff mode: ${sessions.handoff} (set "handoff": "stay" in ${path.join(DIRS.home, 'config.json')} to keep windows open)`);
+    break;
+  }
   case 'install-skill': {
     const dest = path.join(os.homedir(), '.claude', 'skills', 'lets');
     fs.mkdirSync(dest, { recursive: true });
@@ -132,8 +145,9 @@ switch (cmd) {
   }
   case 'doctor': {
     ensureDirs();
-    const runs = fs.readdirSync(DIRS.run).filter((f) => f.startsWith('host-')).map((f) => readJson(path.join(DIRS.run, f)));
-    print({ node: process.version, root, home: DIRS.home, hosts: runs, uniques: new Registry().list().map((u) => `${u.name}:${u.ok ? 'ok' : 'bad'}`) });
+    // run files hold the per-host secret token: never print it (doctor output ends up in bug reports)
+    const runs = fs.readdirSync(DIRS.run).filter((f) => f.startsWith('host-')).map((f) => { const { token, ...r } = readJson(path.join(DIRS.run, f)) || {}; return { ...r, token: token ? '(redacted)' : undefined }; });
+    print({ node: process.version, root, home: DIRS.home, hosts: runs, uniques: new Registry().list().map((u) => `${u.name}:${u.ok ? 'ok' : 'bad'}`), sessions: new Sessions({ registry: new Registry() }).list({ limit: 5 }).map((s) => `${s.unique}:${s.id}${s.label ? ` (${s.label})` : ''}`) });
     break;
   }
   default:

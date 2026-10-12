@@ -44,6 +44,14 @@ in the background when the engine starts, on demand when `open` names one, by
 `absorbProfile()` folds the shell's aggregate stats into the learned profile
 and nudges the persona's traits. `teach()` writes a special skill.
 
+**engine/src/sessions.mjs** — handoff. When a unique's *export* event arrives
+("Send to Claude"), the payload is saved under `~/.lets/sessions/<unique>/`,
+the event is marked `data.session = {id, handoff:true}` and the window gets
+`session.close`; Claude answers in the transcript. `open {resume}` queues the
+unique's *restore* command with the saved payload, so the board comes back.
+Which types play which role comes from the manifest's `session` block
+(`<domain>.export / .snapshot / .load` by default).
+
 **engine/src/router.mjs** — kind priors → complexity/risk → tier; a ledger of
 outcomes per `(kind, tier)` bumps tiers with poor trust and allows safe
 demotions; `plan()` builds topological waves for parallel Agent spawns.
@@ -93,7 +101,10 @@ Claude with the human's next message at zero tool-call cost.
    Claude calls `listen`/`query` explicitly.
 5. Claude reacts with `send`/`say`: nodes appear animated, the companion
    speaks, a component card shows up.
-6. Before leaving, Claude writes what it learned (`entity learn/teach`).
+6. **Send to Claude**: the host saves the board as a session and closes the
+   window; Claude reviews it in the transcript and labels the session.
+   `/lets graph` with "continue …" resumes it (`open {resume}`).
+7. Before leaving, Claude writes what it learned (`entity learn/teach`).
 
 ## Future mediums
 

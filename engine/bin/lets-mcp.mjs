@@ -33,7 +33,10 @@ bus.push = (msg) => {
   const ok = pushOrig(msg);
   if (ok && WAKE.has(msg?.type) && !bus.listening && process.env.LETS_CHANNEL !== '0') {
     const data = JSON.stringify(msg.data ?? {});
-    const body = `${msg.type} from window ${String(msg.from).replace(/^unique:/, '')}:\n${data.length > 4000 ? data.slice(0, 4000) + '…' : data}\n(React per the unique's guide; answer in the window with the lets tools. Call lets listen to drain anything else.)`;
+    const hint = msg.data?.session?.handoff
+      ? '(This is a "Send to Claude" handoff: the window is closing itself. Answer in the transcript, label the session with the sessions tool; later open {resume} brings it back.)'
+      : '(React per the unique\'s guide; answer in the window with the lets tools. Call lets listen to drain anything else.)';
+    const body = `${msg.type} from window ${String(msg.from).replace(/^unique:/, '')}:\n${data.length > 4000 ? data.slice(0, 4000) + '…' : data}\n${hint}`;
     server.channel(body, { window: String(msg.from).split('#')[1] || '', type: msg.type, event_id: msg.id });
   }
   return ok;

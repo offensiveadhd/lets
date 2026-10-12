@@ -59,7 +59,7 @@ const shell = Shell.mount(lets, {
 
 | Member | Behaviour |
 |---|---|
-| `shell.entity` | the companion controller (below) |
+| `shell.entity` | the companion controller (below), including `react(name, {ms?, force?})` |
 | `shell.chat` | `open()`, `close()`, `toggle()`, `append(role, text)`, `stream(id, chunk, done)` |
 | `shell.components` | `create(spec)`, `update(id, props)`, `remove(id)`, `get(id)`, `register(type, factory)` |
 | `shell.toast(text, level='info', ttl=3500)` | bottom-center toasts |
@@ -68,7 +68,8 @@ const shell = Shell.mount(lets, {
 | `shell.destroy()` | unmount |
 
 The shell **handles these commands itself** (wiring `lets.on(...)`): all of
-`entity.*`, `chat.*`, `component.*`, `ui.*`. The unique never re-implements them.
+`entity.*`, `chat.*`, `component.*`, `ui.*`, plus `session.close` and
+`session.listening`. The unique never re-implements them.
 
 ### 2.1 The companion entity
 
@@ -100,11 +101,44 @@ Behaviour (all client-side, zero network traffic):
   `entity.profile` at most every 60 s and on `beforeunload`:
   `{pace: px/s median, clickRate: clicks/min, dwell: median ms between
   actions, regions: {tl,tr,bl,br,c} fractions, idleMs, sessionMs, summons,
-  picks, dismisses}`. It also persists the last profile in `localStorage`
+  picks, dismisses, secrets}`. It also persists the last profile in `localStorage`
   (`lets.profile`) and tunes its own spring from it on next boot.
 - `entity.persona {name, traits:{speed:0-1, distance:0-1, chatty:0-1,
   playful:0-1}, color?}` reconfigures the sprite (name shown on hover).
 - `entity.move`, `entity.show`, `entity.hide`, `entity.mood` as in LIP §3.2.
+- **Reactions**: short expressions (0.4–2.5 s) that never block input:
+  `dizzy whoa startled gasp oops wink cheer blush boop yawn peek nod
+  shake-no wave spin dance disco sparkle nightcap wheee`. The shell plays
+  most of them from the human's own movement (fast motion or a mouse shake,
+  a wheel burst, a click storm, Delete/Backspace and Ctrl+Z outside text
+  fields, hovering or clicking the sprite, idling, leaving and coming back;
+  the full trigger table is in `sdk/README.md` and `docs/ENTITY.md`).
+  `entity.react {name, ms?, force?}` and `shell.entity.react(name, {ms?,
+  force?})` play one on demand: `react()` returns `false` for an unknown name
+  or during the reaction's cooldown (`force` skips it), and an unknown name
+  fails the command's `ack`. `ms` is clamped to 300–8000. One reaction at a
+  time; a new one replaces the current one except the farewell `wave`. While
+  one plays, `.lets-entity-layer` has `data-react="<name>"`. Motion is WAAPI
+  on the sprite (transform/opacity only); under `prefers-reduced-motion` only
+  the face, cheeks and glow change, for about a second.
+- **Secret moves**: `spin` (double-click), `dance` (type `pip` outside a text
+  field), `disco` (Konami code), `dizzy` by circling the sprite twice in 3 s,
+  `nightcap` (sleepy between 00:00 and 05:00 local), `boop` (five quick
+  clicks in a row) and `wheee` (dragging the caught sprite). The first find
+  of each in a window emits `entity.secret {name}` once, adds to
+  `entity.profile.secrets`, and shows a one-line bubble.
+- **Farewell**: `session.close {reason: "handoff"|"idle"|"claude", text?, ms?}`
+  closes the menu and bubble, sets `data-closing="true"` on `.lets-shell`
+  (everything dims and stops taking clicks, except the companion and the
+  overlay), moves the companion to the centre and plays `wave`, and shows the
+  `.lets-farewell` glass card: `text` (default "Sent to Claude ✦ see you in
+  Claude Code"), "This window is closing…", and a **Keep working** button
+  that takes focus. It emits `session.closing {reason}` when the farewell
+  starts and calls `window.close()` after `ms` (default 1400, clamped
+  300–8000). If the page is still visible 350 ms later (a tab the page did
+  not open cannot close itself), the card stays and says Claude will close
+  it. **Keep working** (or `Esc`) removes the card, clears `data-closing`,
+  lets the companion follow again, and emits `session.stay {}`.
 
 Accessibility: the sprite has `role="button"`, `aria-label="<name>, your companion"`.
 Respect `prefers-reduced-motion` (no bob, instant moves).

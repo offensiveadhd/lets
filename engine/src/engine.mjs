@@ -6,6 +6,7 @@ import { Host } from './host.mjs';
 import { Entity } from './entity.mjs';
 import { Router } from './router.mjs';
 import { Store } from './store.mjs';
+import { Sessions } from './sessions.mjs';
 import { buildTools } from './tools.mjs';
 import { ensureDefaults, missingDefaults } from './defaults.mjs';
 
@@ -26,6 +27,7 @@ export async function createEngine({ projectDir = process.cwd(), port, log = mak
   const store = new Store({ log });
   const host = new Host({ log, projectDir, entity });
   await host.start(port);
+  const sessions = new Sessions({ registry: host.registry, log, project: projectDir });
   const defaults = { missing: missingDefaults(host.registry), promise: null, report: null };
   /** Install missing default uniques (graph, …) once; concurrent callers share the same promise. */
   const provision = (opts = {}) => {
@@ -34,7 +36,7 @@ export async function createEngine({ projectDir = process.cwd(), port, log = mak
     }
     return defaults.promise;
   };
-  const tools = buildTools({ host, entity, router, store, log, provision });
+  const tools = buildTools({ host, entity, router, store, sessions, log, provision });
   if (defaults.missing.length && process.env.LETS_NO_DEFAULTS !== '1') {
     log('defaults', `missing: ${defaults.missing.map((u) => u.name).join(', ')} — installing in the background`);
     provision().catch(() => {});
@@ -42,5 +44,5 @@ export async function createEngine({ projectDir = process.cwd(), port, log = mak
   const stop = () => { try { host.stop(); } catch { /* ignore */ } };
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(sig, () => { stop(); process.exit(0); });
   process.on('exit', stop);
-  return { host, entity, router, store, tools, log, stop, provision, defaults };
+  return { host, entity, router, store, sessions, tools, log, stop, provision, defaults };
 }
