@@ -9,7 +9,8 @@ Be kind to each other ([CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)). Report secu
 | Repo | What goes there |
 |---|---|
 | [lets](https://github.com/TikoTikTok/lets) | The engine, the Claude Code plugin and marketplace, the LIP protocol, the SDK and shell (Doto, chat, components), the installer, `defaults.json`. Bugs, feature ideas, protocol changes, default proposals. |
-| [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | The graph board, the first and (today) only default unique. Board bugs and ideas. |
+| [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | The graph board, the first default unique. Board bugs and ideas. |
+| [lets-unique-den](https://github.com/TikoTikTok/lets-unique-den) | Doto's home, the second default unique: what the companion learned about you, with edit and forget by pointing. Bugs and ideas for what it shows and lets you change. |
 | [lets-unique-template](https://github.com/TikoTikTok/lets-unique-template) | The template repository for a new unique (`pulse`, a dial you talk through). Start here to build one. |
 | [lets-store](https://github.com/TikoTikTok/lets-store) | The community store: `index.json` of uniques by git URL, the validator, the contribution checklist. Pull requests for store entries. |
 | [lets-site](https://github.com/TikoTikTok/lets-site) | The website, published at https://tikotiktok.github.io/lets-site/. |
@@ -34,7 +35,7 @@ People then install it with `/lets store <name>` (inspect, then confirm).
 7. **Discussion happens in that issue.** Defaults are installed on everyone's machine, so the bar is higher than for the store. What the maintainers weigh: it is store-verified, it is solid rather than a demo, its permissions are minimal (ideally none), its guide is short and clear, it adds a medium the defaults do not already cover, and someone is willing to maintain it.
 8. **If it is accepted,** a maintainer adds it to `defaults.json` in a pull request (the file is the approved list; the engine installs it from git on first use and still validates it).
 
-Today `defaults.json` has one entry, `graph`. Nothing else is promised or pending: `pulse` is in the store as the template, and the store is where candidates grow.
+Today `defaults.json` has two entries, `graph` and `den`. Nothing else is promised: `pulse` is in the store as the template, ideas for new uniques are listed under "Proposed uniques" in [ROADMAP.md](ROADMAP.md), and the store is where candidates grow.
 
 ## What is next
 

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        `defaults.json` is the approved list of uniques every installation gets. Today it holds one entry (`graph`). New entries are proposed here, and a unique must be **store-verified first**:
+        `defaults.json` is the approved list of uniques every installation gets. Today it holds two entries (`graph`, `den`). New entries are proposed here, and a unique must be **store-verified first**:
 
         1. Build it from the template (https://github.com/TikoTikTok/lets-unique-template).
         2. Open a PR to the store (https://github.com/TikoTikTok/lets-store) with its `index.json` entry.

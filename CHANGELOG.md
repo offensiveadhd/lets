@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.6.0 — 2026-10-13
+
+- **A second default unique: den, Doto's home.** `/lets den` opens the page
+  where the human sees everything the companion learned and edits or forgets
+  it by pointing: persona (name, tagline, colour), the six traits as sliders,
+  likes and dislikes, nicknames, memory lines, special skills (thumbs up or
+  down, forget), the seven secret moves (found ones lit) and the interaction
+  profile. Every edit goes through Claude (the `entity` tool) and den shows
+  it as pending until Claude confirms; Send to Claude hands the page over for
+  a memory review in the chat, and "continue" brings it back live.
+  `defaults.json` lists it next to graph (repo `lets-unique-den`).
+- **Engine for den.** `GET /lip/entity` (token-protected) returns the full
+  companion state; the `entity` tool gains `full`, `set` (direct assignment
+  of name, tagline, traits, colour), `unlearn` (remove likes, dislikes,
+  nickname keys and memory lines by `ts`), `memory` (recent lines with `ts`)
+  and `reset` (persona back to defaults, memory kept). `profile.json` now
+  records the names of the secret moves found (`secrets`); a found secret is
+  written to memory once, under the companion's current name.
+- **Fixes.** On a fresh install the persona shared its `traits`, `likes`,
+  `dislikes` and `nicknames` objects with the module defaults, so the first
+  `learn` in that process changed the defaults too; they are copied now. The
+  registry skipped a unique folder that is a symlink or a Windows junction
+  (the layout `docs/UNIQUES.md` recommends for development); it follows them
+  now. `lets --help` lists `url`, `send`, `events`, `listen` and `defaults`,
+  and `lets events` drains its own cursor instead of the one `serve
+  --verbose` uses.
+- **Template 0.2.0** (`lets-unique-template`): keyboard-accessible dial, the
+  session block (Send to Claude, resume) as the reference implementation,
+  `package.json`, `scripts/validate.mjs` and CI, README without machine paths.
+- Three unique proposals filed for the roadmap: waves, triage, pins.
+
 ## 0.5.0 — 2026-10-13
 
 - **Pip is now Doto.** The companion's default name and character changed.

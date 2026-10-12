@@ -55,7 +55,8 @@ button.onclick = () => lets.emit('my-unique.thing.changed', { value });
 
 The shell handles `entity.*`, `chat.*`, `component.*`, `ui.*` for you. Use
 `shell.onMedia(cb)` to place pasted images, `shell.onInline(cb)` to place inline
-components on your canvas, `shell.toast()` for feedback.
+components on your canvas, `shell.toast()` for feedback. Read-only host state
+is one call away: `await lets.get('/lip/persona')` or `await lets.get('/lip/entity')`.
 
 Theme: use the CSS variables in `/sdk/lets-shell.css` (`--lets-bg`,
 `--lets-accent`, …) so your unique matches the companion.
@@ -84,8 +85,12 @@ cp -r my-unique ~/.lets/uniques/
 
 The reference implementation is **graph** (https://github.com/TikoTikTok/lets-unique-graph):
 read its `CONTRACT.md`, `GUIDE.md` and `ui/graph.js` to see every part of the
-contract in use. Uniques listed in the engine's `defaults.json` are installed for
-everyone on first use; propose one there once it is solid.
+contract in use. **den** (https://github.com/TikoTikTok/lets-unique-den, Doto's
+home) is the other default and the one to read for a page-style unique: it
+fetches host state with `lets.get('/lip/entity')`, applies the human's edits
+optimistically and marks them pending until Claude confirms. Uniques listed in
+the engine's `defaults.json` (graph and den today) are installed for everyone on
+first use; propose one there once it is solid.
 
 `--verbose` prints every up-event; use the companion's chat to simulate
 Claude, or run the real thing: `claude --plugin-dir /path/to/lets` then

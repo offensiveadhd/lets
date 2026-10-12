@@ -192,7 +192,9 @@ Each unique keeps its own behaviour spec next to its code (`CONTRACT.md`). The
 reference implementation is **graph** — https://github.com/TikoTikTok/lets-unique-graph —
 installed by default; its contract covers the board, the `graph.*` events and
 commands, and how it uses the shell (`context()`, `quickSuggestions()`,
-`onMedia`, `onInline`).
+`onMedia`, `onInline`). **den** — https://github.com/TikoTikTok/lets-unique-den —
+is the second default: a scrollable page rather than a canvas, built on the same
+shell and the same quality bar below.
 
 ## 4. Quality bar
 - No console errors; works in Chromium (the app's browser pane) and Edge.

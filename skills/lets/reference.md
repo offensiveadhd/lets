@@ -71,7 +71,13 @@ Human acts → `component.action { id, action: "pick"|"change"|"submit"|"added"|
 { "action": "skill", "name": "screenshot-to-nodes" }
 { "action": "reinforce", "name": "screenshot-to-nodes", "ok": true }
 { "action": "mood", "mood": "proud" }
+{ "action": "full" }                                            // everything he knows: persona, profile, skills, last 60 memory lines, secrets (same as GET /lip/entity)
+{ "action": "set", "name": "Spark", "traits": { "chatty": 0.2 }, "color": "#6bf0ff" }   // direct assignment, traits clamped to 0..1
+{ "action": "unlearn", "likes": ["auto-layout"], "nicknames": ["the bounty board"], "memory": [1791573980436] }   // memory lines by ts
+{ "action": "memory", "n": 30 }                                 // recent lines, each with its ts
+{ "action": "reset" }                                           // name, tagline, colour, traits back to defaults; memory and skills stay
 ```
+`full`, `set`, `unlearn`, `memory` and `reset` are what **den** (Doto's home) needs: `den.*` events are applied with them, then `den.refresh`.
 
 ## plan
 ```json
@@ -98,6 +104,6 @@ Human acts → `component.action { id, action: "pick"|"change"|"submit"|"added"|
 ```json
 { "action": "list" }
 { "action": "info", "name": "graph" }
-{ "action": "defaults" }             // install missing default uniques (graph) from git
+{ "action": "defaults" }             // install missing default uniques (graph, den) from git
 { "action": "defaults", "name": "graph", "force": true }
 ```

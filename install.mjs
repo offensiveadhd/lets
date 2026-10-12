@@ -80,7 +80,7 @@ if (!args.has('--no-skill') && !args.has('--native')) {
   console.log('\n(skipping the personal /lets alias: lets-native provides /lets itself)');
 }
 
-step('default uniques (graph, …)');
+step('default uniques (graph, den)');
 {
   const r = spawnSync(process.execPath, [path.join(root, 'engine', 'bin', 'lets.mjs'), 'defaults'], { encoding: 'utf8' });
   console.log((r.stdout || r.stderr || '').trim().split('\n').map((l) => '  ' + l).join('\n'));

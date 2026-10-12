@@ -1,6 +1,6 @@
 # Releasing
 
-How a `lets` release goes out. Five repos, each with its own version and tag;
+How a `lets` release goes out. Six repos, each with its own version and tag;
 the engine's version is the one users see (`claude plugin list`).
 
 ## Versions
@@ -9,6 +9,7 @@ the engine's version is the one users see (`claude plugin list`).
 |---|---|---|
 | `lets` (engine + plugin) | `package.json`, `.claude-plugin/plugin.json`, `CHANGELOG.md` | `vX.Y.Z` |
 | `lets-unique-graph` | `package.json`, `unique.json`, `CHANGELOG.md` (all three must agree) | `vX.Y.Z` |
+| `lets-unique-den` | `package.json`, `unique.json`, `CHANGELOG.md` (all three must agree) | `vX.Y.Z` |
 | `lets-unique-template` | `unique.json` | `vX.Y.Z` |
 | `lets-store` | `package.json` | `vX.Y.Z` |
 | `lets-site` | none (the site tracks the engine) | `site-YYYY-MM-DD` |
@@ -20,7 +21,7 @@ inside a major version.
 ## Checklist
 
 1. **Green.** `npm test` in `lets`, `node scripts/validate.mjs` in
-   `lets-unique-graph` and `lets-store`, `claude plugin validate .` in `lets`.
+   `lets-unique-graph`, `lets-unique-den` and `lets-store`, `claude plugin validate .` in `lets`.
    CI must be green on `main` of every repo you touch.
 2. **Versions and changelogs.** Bump the files in the table above. The
    changelog entry names what changed for the human (not the diff), dated.
@@ -31,7 +32,8 @@ inside a major version.
    as the README.
 4. **Vendored copies.** `lets-site/sdk/` is a copy of `lets/sdk/`
    (`lets-client.js`, `lets-shell.js`, `lets-shell.css`): re-copy after a shell
-   change. `lets-unique-graph/schemas/unique.schema.json` is a copy of
+   change. `lets-unique-graph/schemas/unique.schema.json` and
+   `lets-unique-den/schemas/unique.schema.json` are copies of
    `lets/protocol/schemas/unique.schema.json`.
 5. **Commit and tag** each repo: `git tag -a vX.Y.Z -m "X.Y.Z: <one line>"`,
    then `git push && git push --tags`. The site gets `site-YYYY-MM-DD`.
@@ -40,8 +42,8 @@ inside a major version.
 7. **Install it yourself** from the published marketplace before announcing:
    `claude plugin marketplace update lets`, `claude plugin update lets@lets`,
    restart Claude Code, `/lets graph`, Send to Claude, `/lets graph resume`.
-   `node engine/bin/lets.mjs defaults --force --only graph` refreshes the
-   installed default unique.
+   `node engine/bin/lets.mjs defaults --force --only graph` (or `--only den`)
+   refreshes the installed default unique.
 8. **Close the issues** the release shipped, with a one-line comment that
    names the tag.
 

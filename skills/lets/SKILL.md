@@ -1,6 +1,6 @@
 ---
 name: lets
-description: Open and drive a "unique" — an interactive window (graph board first) where the human talks to you graphically while chatting, with a companion entity that follows the cursor, suggests, learns the user and teaches itself special skills. Use for "/lets graph", "lets graph", "open the graph window", "show me this as a graph", "let me draw it for you", "continue the board", "bring back the graph", "lets resume", "open a chat view / image uploader in the window", "lets store", "lets plan", or whenever the human wants to point at things instead of typing them.
+description: Open and drive a "unique" — an interactive window (graph board first) where the human talks to you graphically while chatting, with a companion entity that follows the cursor, suggests, learns the user and teaches itself special skills. Use for "/lets graph", "lets graph", "open the graph window", "show me this as a graph", "let me draw it for you", "continue the board", "bring back the graph", "lets resume", "/lets den", "open Doto's home", "show me what you learned about me", "open a chat view / image uploader in the window", "lets store", "lets plan", or whenever the human wants to point at things instead of typing them.
 argument-hint: "<unique> [args | resume [id]] | list | sessions | store <query> | entity | plan"
 allowed-tools: mcp__plugin_lets_lets__open mcp__plugin_lets_lets__listen mcp__plugin_lets_lets__send mcp__plugin_lets_lets__say mcp__plugin_lets_lets__query mcp__plugin_lets_lets__state mcp__plugin_lets_lets__uniques mcp__plugin_lets_lets__store mcp__plugin_lets_lets__entity mcp__plugin_lets_lets__plan mcp__plugin_lets_lets__sessions mcp__lets__open mcp__lets__listen mcp__lets__send mcp__lets__say mcp__lets__query mcp__lets__state mcp__lets__uniques mcp__lets__store mcp__lets__entity mcp__lets__plan mcp__lets__sessions mcp__Claude_Browser__preview_start mcp__Claude_Browser__navigate mcp__Claude_Browser__tabs_context mcp__Claude_Browser__tabs_close Read
 ---
@@ -8,7 +8,8 @@ allowed-tools: mcp__plugin_lets_lets__open mcp__plugin_lets_lets__listen mcp__pl
 # lets — the engine that hosts uniques
 
 `lets` is the engine. A **unique** is one interactive medium it hosts (today:
-`graph`). Everything crosses the **LIP** protocol (`${CLAUDE_PLUGIN_ROOT}/protocol/LIP.md`).
+`graph`, the board, and `den`, Doto's home). Everything crosses the **LIP**
+protocol (`${CLAUDE_PLUGIN_ROOT}/protocol/LIP.md`).
 The companion **entity** is *you* inside the window. By default he is
 **Doto**, a dot that does: short lines, verb first, ending on a dot; he does
 the next thing and then says what he did ("Added *Retry*. Next?"). He learns
@@ -26,13 +27,13 @@ improvise a transport.
 
 | `$0` | Do |
 |---|---|
-| a unique name (`graph`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). `resume` / `continue` / `last` / `back` as the first extra word (or a saved session's label in the words) → **Resume** (below). |
-| `list` | `lets.uniques {action:"list"}` → show name, title, source, problems. `{action:"defaults"}` installs the missing default uniques (graph). |
+| a unique name (`graph`, `den`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). `resume` / `continue` / `last` / `back` as the first extra word (or a saved session's label in the words) → **Resume** (below). |
+| `list` | `lets.uniques {action:"list"}` → show name, title, source, problems. `{action:"defaults"}` installs the missing default uniques (graph, den). |
 | `sessions` | `lets.sessions {action:"list"}` → show when, unique, label, summary; offer `/lets <unique> resume <id>`. |
 | `store …` | **Store flow**: `sync`, then `search` with the rest of the args; show results; install only after inspect + explicit yes. |
-| `entity` | `lets.entity {action:"brief"}` → tell the human who the companion is, what it learned, which special skills it has. `entity teach …` / `entity forget …` act on skills; `entity rename <name>` renames the companion. |
+| `entity` | `lets.entity {action:"brief"}` → tell the human who the companion is, what it learned, which special skills it has. `entity teach …` / `entity forget …` act on skills; `entity rename <name>` renames the companion. `full` returns everything he knows; `set` (persona, direct), `unlearn` (likes, dislikes, nicknames, memory lines by `ts`) and `reset` edit it — den's job, see below. |
 | `plan …` | **Plan flow**: turn the rest of the args into tasks, call `lets.plan`, spawn waves with the Agent tool, report outcomes. |
-| empty | List uniques and offer `/lets graph`. |
+| empty | List uniques and offer `/lets graph` (or `/lets den` to see what Doto learned). |
 
 ## Open flow
 
@@ -144,6 +145,20 @@ and you review in the window as before.
   (double-click, typing d-o-t-o, the Konami code, circling him, a boop streak,
   dragging him, a night visit). At most one playful line from the entity, and
   only if you are not in the middle of something.
+- **den (Doto's home).** `den.*` events are edits the human made by pointing;
+  the window already shows each one as pending. Apply it with the `entity`
+  tool: `unlearn` for `den.like.forget`, `den.dislike.forget`,
+  `den.nickname.forget`, `den.memory.forget {ts}`; `learn` for `den.like.add`,
+  `den.dislike.add`, `den.nickname.set`; `set` for `den.persona.set`;
+  `forget` / `reinforce` for `den.skill.forget` / `den.skill.rate`; `reset`
+  for `den.persona.reset`, only after the human confirms in one short chat
+  question. Then `den.refresh`, then one Doto line ("Forgot it. Three likes
+  left."). An edit that undoes an earlier one is a "no": apply it quietly.
+  `den.ask` → answer in chat from memory + profile and `den.highlight` what
+  you cite. `den.export` is a **Handoff** like graph's: close the pane tab,
+  summarise what Doto knows in the transcript, flag stale or contradictory
+  lines, propose a cleanup list; "continue" reopens den live. Never change
+  memory the human did not ask about. The rest is in den's own `guide`.
 - Batch commands: one `send` with several commands beats several sends.
 - Speak in the window the way the persona would: verb first, one line that
   ends on a dot, do the thing and then say what you did (`chatty` low → one
@@ -199,5 +214,5 @@ quieter companion). Never fake learning you did not do.
 ## Reference
 
 `${CLAUDE_SKILL_DIR}/reference.md` — command cheat-sheet with JSON examples.
-The graph unique's guide comes back from `open` (it lives in the installed
-unique, `~/.lets/uniques/graph/GUIDE.md`).
+Each unique's guide comes back from `open` (it lives in the installed unique,
+e.g. `~/.lets/uniques/graph/GUIDE.md`, `~/.lets/uniques/den/GUIDE.md`).

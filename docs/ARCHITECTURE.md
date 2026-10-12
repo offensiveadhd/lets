@@ -19,7 +19,9 @@
 **engine/src/host.mjs** — `http.Server` bound to 127.0.0.1 on a free port.
 Routes: `/u/<unique>/…` (static, CSP), `/sdk/…`, `/uploads/…`, `/lip/stream`
 (SSE down), `/lip/event` (POST up), `/lip/upload` (blobs → disk → `media.*`
-event with a path), `/lip/drain` (named cursor read for hooks), `/lip/persona`.
+event with a path), `/lip/drain` (named cursor read for hooks), `/lip/persona`,
+`/lip/entity` (the full companion state; read-only, token-protected, what den
+renders).
 A run file `~/.lets/run/host-<pid>.json` publishes port + token for the hook.
 
 **engine/src/bus.mjs** — one ring buffer of up-events with named cursors
@@ -35,14 +37,16 @@ folders), `<project>/.lets/uniques` (local); validates `unique.json` against
 folder, no reserved domains, declared domains only).
 
 **engine/src/defaults.mjs** — the uniques every installation gets
-(`defaults.json`: graph today). Missing ones are cloned into `~/.lets/uniques`
+(`defaults.json`: graph and den today). Missing ones are cloned into `~/.lets/uniques`
 in the background when the engine starts, on demand when `open` names one, by
 `lets defaults`, and by `install.mjs`. Trusted by the list, still validated.
 
 **engine/src/entity.mjs** — persona + profile + memory + skills on disk.
 `brief()` is what Claude sees on every `open` (kept small on purpose).
 `absorbProfile()` folds the shell's aggregate stats into the learned profile
-and nudges the persona's traits. `teach()` writes a special skill.
+and nudges the persona's traits. `teach()` writes a special skill. The `entity`
+tool also returns the full state and applies the human's edits from den
+(`set`, `unlearn`, `reset`); the engine never applies them on its own.
 
 **engine/src/sessions.mjs** — handoff. When a unique's *export* event arrives
 ("Send to Claude"), the payload is saved under `~/.lets/sessions/<unique>/`,
@@ -87,7 +91,8 @@ Claude with the human's next message at zero tool-call cost.
   the engine or the skill.
 - **The companion is persistent and honest.** Learning is explicit (`learn`,
   `teach`, `reinforce`) and inspectable on disk; nothing is "learned" that the
-  model did not write down.
+  model did not write down. den shows all of it to the human, and edits go
+  back through Claude.
 
 ## Lifecycle of `/lets graph`
 

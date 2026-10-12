@@ -153,7 +153,8 @@ export class Sessions {
   restoreCommand(rec) {
     if (!rec?.unique || !rec.data) return null;
     const t = this.types(rec.unique);
-    return { type: t.restore, data: rec.data };
+    // `session.resumed` tells the unique this load is a resume (not one of Claude's own loads); uniques ignore unknown keys
+    return { type: t.restore, data: { session: { id: rec.id, resumed: true }, ...(rec.data && typeof rec.data === 'object' ? rec.data : {}) } };
   }
 
   prune(unique) {
