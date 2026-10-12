@@ -2,7 +2,7 @@
 
 Two ES modules, served by the host and usable offline with no build step:
 
-- `/sdk/lets-client.js`: LIP transport (`Lets.connect`, `on`, `emit`, `upload`).
+- `/sdk/lets-client.js`: LIP transport (`Lets.connect`, `on`, `emit`, `upload`, and `get` for read-only host state: `await lets.get('/lip/persona')` or `await lets.get('/lip/entity')`, the full companion state that den renders).
 - `/sdk/lets-shell.js` + `/sdk/lets-shell.css`: the **shell**. It provides the companion entity, chat panel, dynamic components, image paste/drop, toasts and the deep-violet theme. It handles every `entity.*`, `chat.*`, `component.*` and `ui.*` command itself, plus the `session.close` farewell, so your unique only handles its own domain (e.g. `graph.*`).
 
 Open `/sdk/demo/` to try the shell on an empty canvas. With no host token it runs on an offline loopback (where `window.close()` is a no-op, so the farewell stays to be tried). The control panel has a button for every mood, reaction and component, and `session.close`. `window.__shell`, `window.__lets` and `window.__cmd(type, data)` are exposed there for debugging.

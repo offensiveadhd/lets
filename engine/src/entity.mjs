@@ -40,7 +40,11 @@ export function migratePersona(persona) {
 const DEFAULT_PROFILE = {
   pace: null, clickRate: null, dwell: null, regions: null, idleMs: null,
   sessionsSeen: 0, summons: 0, picks: 0, dismisses: 0, lastSeen: null,
+  secrets: [],    // names of the secret moves the human found, in order of discovery
 };
+
+/** The companion's secret moves (docs/ENTITY.md); the shell emits `entity.secret {name}` on a first find. */
+export const SECRET_MOVES = ['spin', 'dance', 'disco', 'dizzy', 'nightcap', 'boop', 'wheee'];
 
 export class Entity {
   constructor() {
@@ -49,11 +53,19 @@ export class Entity {
     this.memoryFile = path.join(DIRS.entity, 'memory.jsonl');
     this.skillsDir = DIRS.entitySkills;
     fs.mkdirSync(this.skillsDir, { recursive: true });
-    this.persona = { ...DEFAULT_PERSONA, ...(readJson(this.personaFile) || {}) };
+    // own copies of the nested defaults: a fresh install must never mutate DEFAULT_PERSONA through learn()
+    const saved = readJson(this.personaFile) || {};
+    this.persona = { ...DEFAULT_PERSONA, ...saved, traits: { ...DEFAULT_PERSONA.traits, ...(saved.traits || {}) }, likes: [...(saved.likes || [])], dislikes: [...(saved.dislikes || [])], nicknames: { ...(saved.nicknames || {}) } };
     this.migrated = migratePersona(this.persona);
-    if (this.migrated) appendJsonl(this.memoryFile, { ts: Date.now(), kind: 'note', text: `the companion's default name changed from ${this.migrated.from} to ${this.migrated.to}; the human can rename it with "entity rename"`, weight: 1 });
+    if (this.migrated) appendJsonl(this.memoryFile, { ts: this.stamp(), kind: 'note', text: `the companion's default name changed from ${this.migrated.from} to ${this.migrated.to}; the human can rename it with "entity rename"`, weight: 1 });
     if (!this.persona.born) this.persona.born = new Date().toISOString();
     this.profile = { ...DEFAULT_PROFILE, ...(readJson(this.profileFile) || {}) };
+    this.profile.secrets = Array.isArray(this.profile.secrets) ? [...this.profile.secrets] : [];
+    // finds recorded before 0.6.0 live only in memory.jsonl (`… secret move "spin"`): merge those names in
+    for (const m of this.memory(500)) {
+      const n = m.kind === 'secret' ? m.text.match(/"([a-z-]+)"/)?.[1] : null;
+      if (n && SECRET_MOVES.includes(n) && !this.profile.secrets.includes(n)) this.profile.secrets.push(n);
+    }
     this.persona.sessions = (this.persona.sessions || 0) + 1;
     this.profile.sessionsSeen = (this.profile.sessionsSeen || 0) + 1;
     this.save();
@@ -62,6 +74,13 @@ export class Entity {
   save() {
     writeJson(this.personaFile, this.persona);
     writeJson(this.profileFile, this.profile);
+  }
+
+  /** A memory line's `ts`: wall-clock ms, strictly increasing within this process so two lines never share an id. */
+  stamp() {
+    const t = Date.now();
+    this._ts = t > (this._ts || 0) ? t : this._ts + 1;
+    return this._ts;
   }
 
   /** What the shell needs to configure the sprite. */
@@ -76,7 +95,7 @@ export class Entity {
     const recent = this.recentMemory(8);
     return {
       persona: { name: this.persona.name, tagline: this.persona.tagline, traits: this.persona.traits, mood: this.persona.mood, sessions: this.persona.sessions, likes: this.persona.likes.slice(-8), dislikes: this.persona.dislikes.slice(-5), nicknames: this.persona.nicknames },
-      profile: { pace: this.profile.pace, clickRate: this.profile.clickRate, dwell: this.profile.dwell, regions: this.profile.regions, summons: this.profile.summons, picks: this.profile.picks },
+      profile: { pace: this.profile.pace, clickRate: this.profile.clickRate, dwell: this.profile.dwell, regions: this.profile.regions, summons: this.profile.summons, picks: this.profile.picks, secrets: this.profile.secrets },
       skills: skills.map((s) => ({ name: s.name, triggers: s.triggers, confidence: s.confidence })),
       recentMemory: recent,
     };
@@ -86,7 +105,7 @@ export class Entity {
 
   /** Record an observation (from Claude or from an entity.profile event). */
   learn({ kind = 'note', text, weight = 1, traits = null, likes = [], dislikes = [], nicknames = {}, mood = null } = {}) {
-    if (text) appendJsonl(this.memoryFile, { ts: Date.now(), kind, text: String(text).slice(0, 400), weight });
+    if (text) appendJsonl(this.memoryFile, { ts: this.stamp(), kind, text: String(text).slice(0, 400), weight });
     if (traits) for (const [k, v] of Object.entries(traits)) {
       if (k in this.persona.traits && typeof v === 'number') this.persona.traits[k] = clamp01(this.persona.traits[k] * 0.7 + v * 0.3);
     }
@@ -132,7 +151,93 @@ export class Entity {
 
   setMood(mood) { this.persona.mood = mood; this.save(); return mood; }
 
-  rename(name) { this.persona.name = String(name).slice(0, 24); this.save(); return this.persona.name; }
+  rename(name) { this.set({ name: String(name ?? '') }); return this.persona.name; }
+
+  // ---- den: everything he knows, and the human's edits ------------------------
+
+  /**
+   * Everything the companion knows, for the den unique (`GET /lip/entity`,
+   * `entity full`): persona with likes/dislikes/nicknames, the learned profile
+   * with the secrets found, every special skill with its body, the last 60
+   * memory lines (each with its `ts`, which is the line's id), the list of all
+   * secret moves and the default persona.
+   */
+  full() {
+    const p = this.persona;
+    return {
+      persona: { name: p.name, tagline: p.tagline, born: p.born, color: p.color, mood: p.mood, sessions: p.sessions, traits: { ...p.traits }, likes: [...p.likes], dislikes: [...p.dislikes], nicknames: { ...p.nicknames } },
+      profile: { ...this.profile, secrets: [...this.profile.secrets] },
+      skills: this.listSkills().map(({ file, ...s }) => s),
+      memory: this.memory(60),
+      secretsAll: [...SECRET_MOVES],
+      defaults: { name: DEFAULT_PERSONA.name, tagline: DEFAULT_PERSONA.tagline, color: DEFAULT_PERSONA.color, traits: { ...DEFAULT_PERSONA.traits } },
+      at: Date.now(),
+    };
+  }
+
+  /** The last `n` memory lines, oldest first, each `{ts, kind, text, weight}`; `ts` identifies a line. */
+  memory(n = 30) {
+    const take = Math.max(1, Math.floor(Number(n)) || 30);
+    try {
+      const lines = fs.readFileSync(this.memoryFile, 'utf8').trim().split('\n').filter(Boolean);
+      return lines.slice(-take).map((l) => {
+        try { const o = JSON.parse(l); return o && typeof o === 'object' ? { ts: Number(o.ts) || 0, kind: String(o.kind || 'note'), text: String(o.text || ''), weight: Number.isFinite(o.weight) ? o.weight : 1 } : null; } catch { return null; }
+      }).filter(Boolean);
+    } catch { return []; }
+  }
+
+  /**
+   * Direct assignment of persona fields (the human edited them in den), unlike
+   * `learn`, which blends traits in. Unknown traits and bad colours are ignored.
+   */
+  set({ name, tagline, traits, color } = {}) {
+    if (typeof name === 'string' && name.trim()) this.persona.name = name.trim().slice(0, 24);
+    if (typeof tagline === 'string') this.persona.tagline = tagline.trim().slice(0, 120);
+    if (traits && typeof traits === 'object' && !Array.isArray(traits)) for (const [k, v] of Object.entries(traits)) if (Object.hasOwn(this.persona.traits, k) && typeof v === 'number' && Number.isFinite(v)) this.persona.traits[k] = clamp01(v);
+    if (typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color)) this.persona.color = color;
+    this.save();
+    return this.brief().persona;
+  }
+
+  /** Remove exactly these likes, dislikes, nickname keys and memory lines (by `ts`). Returns how many went. */
+  unlearn({ likes = [], dislikes = [], nicknames = [], memory = [] } = {}) {
+    const removed = { likes: 0, dislikes: 0, nicknames: 0, memory: 0 };
+    const drop = (arr, items) => { const set = new Set([].concat(items).map(String)); const out = arr.filter((x) => !set.has(x)); return [out, arr.length - out.length]; };
+    [this.persona.likes, removed.likes] = drop(this.persona.likes, likes);
+    [this.persona.dislikes, removed.dislikes] = drop(this.persona.dislikes, dislikes);
+    for (const k of [].concat(nicknames)) if (k in this.persona.nicknames) { delete this.persona.nicknames[k]; removed.nicknames++; }
+    const ts = new Set([].concat(memory).map(Number).filter(Boolean));
+    if (ts.size) {
+      try {
+        const lines = fs.readFileSync(this.memoryFile, 'utf8').split('\n').filter(Boolean);
+        const kept = lines.filter((l) => { try { return !ts.has(Number(JSON.parse(l).ts)); } catch { return true; } });
+        const gone = lines.length - kept.length;
+        if (gone) {
+          const tmp = `${this.memoryFile}.${process.pid}.tmp`;
+          try { fs.writeFileSync(tmp, kept.length ? kept.join('\n') + '\n' : ''); fs.renameSync(tmp, this.memoryFile); removed.memory = gone; }
+          catch (err) { try { fs.unlinkSync(tmp); } catch { /* nothing to clean */ } throw err; }
+        }
+      } catch (err) { if (err?.code !== 'ENOENT') removed.error = `memory lines not removed: ${err?.message || err}`; }
+    }
+    this.save();
+    return { removed };
+  }
+
+  /** Persona back to the defaults (name, tagline, colour, traits). Likes, dislikes, nicknames, memory and skills stay. */
+  reset() {
+    Object.assign(this.persona, { name: DEFAULT_PERSONA.name, tagline: DEFAULT_PERSONA.tagline, color: DEFAULT_PERSONA.color, traits: { ...DEFAULT_PERSONA.traits } });
+    this.save();
+    return this.brief().persona;
+  }
+
+  /** A secret move was found (`entity.secret`): remember its name once. True on the first find ever. */
+  noteSecret(name) {
+    const n = String(name).slice(0, 24);
+    if (!SECRET_MOVES.includes(n) || this.profile.secrets.includes(n)) return false;
+    this.profile.secrets.push(n);
+    this.save();
+    return true;
+  }
 
   // ---- special skills ---------------------------------------------------------
 
@@ -164,7 +269,7 @@ export class Entity {
       `updated: ${new Date().toISOString()}`, `uses: ${uses}`, '---', '',
     ].join('\n');
     fs.writeFileSync(file, fm + String(body).trim() + '\n');
-    appendJsonl(this.memoryFile, { ts: Date.now(), kind: 'skill', text: `learned "${name}"`, weight: 2 });
+    appendJsonl(this.memoryFile, { ts: this.stamp(), kind: 'skill', text: `learned "${name}"`, weight: 2 });
     return { name: s, file };
   }
 

@@ -67,7 +67,7 @@ It prints each command it runs. In order, it:
 2. adds the `lets` marketplace from GitHub (`claude plugin marketplace add TikoTikTok/lets`), or refreshes it if it is already added;
 3. installs the plugin at user scope (`claude plugin install lets@lets --scope user`), or updates it if it is already installed;
 4. installs the personal `/lets` alias skill into `~/.claude/skills/lets` (`node engine/bin/lets.mjs install-skill`), so the bare `/lets graph` works as well as `/lets:lets graph`;
-5. installs the default uniques listed in `defaults.json` into `~/.lets/uniques` (today: `graph`, via `node engine/bin/lets.mjs defaults`);
+5. installs the default uniques listed in `defaults.json` into `~/.lets/uniques` (today: `graph` and `den`, via `node engine/bin/lets.mjs defaults`);
 6. lists the installed plugins (`claude plugin list`) so you can confirm `lets@lets` is there.
 
 It never touches the companion's memory in `~/.lets/entity`, so reinstalling is safe.
@@ -95,7 +95,7 @@ followed by `node engine/bin/lets.mjs install-skill` and `node engine/bin/lets.m
 You cannot restart Claude Code for them. Tell them, in this order:
 
 1. Restart Claude Code (or run `/reload-plugins`) so the plugin, the MCP server and the `/lets` alias are loaded.
-2. Then run `/lets graph`. That opens the board and Doto rolls up to greet them.
+2. Then run `/lets graph`. That opens the board and Doto rolls up to greet them. (`/lets den` opens Doto's home, where they can see what he learns and edit or forget it.)
 
 Mention that the repo is private for now, that their saved boards and Doto's memory live in `~/.lets`, and that `/lets graph resume` brings a saved board back.
 
@@ -106,9 +106,10 @@ Run these after the human has restarted (or after `/reload-plugins`).
 | Check | Expect |
 |---|---|
 | `claude plugin list` | an entry for `lets@lets`, enabled |
-| `/lets:lets list` | the `graph` unique, with no problems listed |
+| `/lets:lets list` | the `graph` and `den` uniques, with no problems listed |
 | `/lets graph` | the board opens in the app's browser pane (or the default browser, see Troubleshooting) and Doto rolls up and says hello |
-| `node engine/bin/lets.mjs doctor` (in the clone) | JSON with your `node` version, the lets `root` and `home`, any running `hosts`, and `uniques` containing `"graph:ok"` |
+| `/lets den` | Doto's home opens: his persona and whatever he has learned about the human so far (little, on a fresh install) |
+| `node engine/bin/lets.mjs doctor` (in the clone) | JSON with your `node` version, the lets `root` and `home`, any running `hosts`, and `uniques` containing `"graph:ok"` and `"den:ok"` |
 | `node engine/bin/lets.mjs validate` (in the clone) | `ok` for every known unique, exit code 0 |
 
 `hosts` is empty when no window is open; that is normal. When a host is running, `doctor` prints its run file, which includes the host's secret `token`. Do not paste that output into a chat, an issue or a log without replacing the token value first.
@@ -121,11 +122,12 @@ Run these after the human has restarted (or after `/reload-plugins`).
 
 **Windows notes.** PowerShell and Git Bash both work. The installer runs `claude` through a shell on Windows because it is a `.cmd` shim; you do not need to do anything for that. Quote paths that contain spaces. State is in `%USERPROFILE%\.lets` (`$HOME\.lets`).
 
-**The graph default failed to install.** The installer prints "could not install a default unique now"; the engine retries on first use, but you can do it now. It needs git and access to the repo:
+**A default (graph or den) failed to install.** The installer prints "could not install a default unique now"; the engine retries on first use, but you can do it now. It needs git and access to the repo:
 
 ```bash
-node engine/bin/lets.mjs defaults            # install what is missing
-node engine/bin/lets.mjs defaults --force    # reinstall graph even if present
+node engine/bin/lets.mjs defaults                      # install what is missing
+node engine/bin/lets.mjs defaults --force              # reinstall both even if present
+node engine/bin/lets.mjs defaults --force --only den   # reinstall just den (or --only graph)
 ```
 
 If the human set `LETS_NO_DEFAULTS=1`, defaults are skipped on purpose; unset it first.

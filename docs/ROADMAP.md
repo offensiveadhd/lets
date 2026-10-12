@@ -5,6 +5,26 @@ before the repos go public, **P2** soon after, **P3** when someone wants it.
 Issues carry the `publish-readiness` label; the umbrella checklist is in the
 lets repo.
 
+## Shipped in 0.6.0 (2026-10-13)
+
+- **den**, Doto's home, is the second default unique
+  ([lets-unique-den](https://github.com/TikoTikTok/lets-unique-den), installed
+  into `~/.lets/uniques/den` like graph and listed in `defaults.json`). It shows
+  what the companion learned about the human (persona and the six traits as
+  sliders, likes and dislikes, nicknames, memory lines, special skills, the
+  seven secret moves with the found ones lit, the interaction profile) and lets
+  them edit or forget any of it by pointing. Claude applies each edit with the
+  `entity` tool and confirms it. **Send to Claude** is a handoff for a memory
+  review in the chat; "continue" reopens it live.
+- Engine: a token-protected `GET /lip/entity` returns the full companion state;
+  the `entity` tool gains `full`, `set`, `unlearn`, `memory` and `reset`;
+  `profile.secrets` now records the names of the secret moves found, and the
+  memory line for a found secret uses the companion's current name.
+- The template unique (`pulse`) is 0.2.0: a keyboard-accessible dial, the
+  session block (`pulse.export` / `pulse.load`) as the reference for handoff and
+  resume, and the validate scaffolding (`scripts/validate.mjs`, CI,
+  `package.json`). Closes lets-unique-template #1, #2 and #3.
+
 ## Shipped in 0.5.0 (2026-10-13)
 
 - Pip is now **Doto**, a dot that does: new default persona (name, tagline,
@@ -63,13 +83,18 @@ lets repo.
 | P2 | [Version-sync guard: package.json, unique.json and CHANGELOG must agree](https://github.com/TikoTikTok/lets-unique-graph/issues/1) | tests |
 | P2 | [More board-driven expressions (sparkle on a quick 5-node chain, gasp on node removal)](https://github.com/TikoTikTok/lets-unique-graph/issues/2) | companion |
 
-### lets-unique-template
+### Proposed uniques
+
+Ideas for new uniques, filed as issues in the lets repo with the
+`unique-proposal` label so anyone can pick one up. None is promised or
+scheduled; how an idea becomes a store entry, and (if it earns it) a default, is
+in [COMMUNITY.md](COMMUNITY.md).
 
 | P | Issue | Labels |
 |---|---|---|
-| P2 | [Make the pulse dial keyboard-accessible and ARIA-correct](https://github.com/TikoTikTok/lets-unique-template/issues/1) | a11y |
-| P2 | [Implement the session block (pulse.export / pulse.load) as the reference for handoff and resume](https://github.com/TikoTikTok/lets-unique-template/issues/2) | sessions |
-| P3 | [Add scripts/validate.mjs, a CI workflow and package.json like the other repos](https://github.com/TikoTikTok/lets-unique-template/issues/3) | tests |
+| P3 | [waves: a board for `/lets plan`, tasks as cards in wave columns with a model-tier chip; Run hands the plan to Claude](https://github.com/TikoTikTok/lets/issues/15) | unique-proposal |
+| P3 | [triage: a card stack for verdicts on findings, swipe yes / no / later](https://github.com/TikoTikTok/lets/issues/16) | unique-proposal |
+| P3 | [pins: paste a screenshot, drop numbered pins, one word per pin](https://github.com/TikoTikTok/lets/issues/17) | unique-proposal |
 
 ## Accepted limits (for now)
 

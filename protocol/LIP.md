@@ -95,7 +95,9 @@ as a **session** (`~/.lets/sessions/<unique>/<id>.json`), its `data` gains
 `session: {id, handoff: true, saved: true, summary}` as the first key, and the
 window receives `session.close`. Claude then answers in the transcript, not in
 the window. `open {resume: "last" | id}` later queues the restore command with
-the saved payload, so the window comes back as it was sent. Snapshot events
+the saved payload, so the window comes back as it was sent; that command's
+data carries `session: {id, resumed: true}` first, so a unique can tell a
+resume from one of Claude's own loads. Snapshot events
 update the saved session silently. `~/.lets/config.json` `"handoff": "stay"`
 keeps windows open instead.
 
@@ -145,6 +147,7 @@ Built-in component types every shell MUST provide: `note`, `options`, `slider`,
 | Window → Host | `POST /lip/event` (envelope or array). Header `x-lets-token`. 202 on accept. |
 | Host → Window | `GET /lip/stream?w=<windowId>` — Server-Sent Events, `data:` = envelope JSON. Heartbeat comment every 15 s. |
 | Window → Host (blobs) | `POST /lip/upload?w=&source=&component=` raw body, `content-type` = mime. Returns `{path,w?,h?,bytes,mime}`. |
+| Window → Host (state) | `GET /lip/persona` and `GET /lip/entity`. Header `x-lets-token`. Read-only host state a unique may fetch: the companion's persona, and the full companion state (persona with likes, dislikes and nicknames, profile, skills, recent memory lines, the secret names). |
 | Claude ↔ Host | MCP (stdio). `listen` long-polls the up-queue; `send` enqueues down-commands. |
 | Hooks → Host | `GET /lip/drain?cursor=<name>` returns & advances a named cursor — used by the `UserPromptSubmit` hook so events reach Claude without a tool call. |
 

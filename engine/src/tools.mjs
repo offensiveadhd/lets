@@ -39,7 +39,12 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
     }
     const ok = origPush(msg);
     if (ok && msg?.type === 'entity.profile') { try { entity.absorbProfile(msg.data || {}); } catch (err) { log('entity', String(err)); } }
-    if (ok && msg?.type === 'entity.secret' && msg.data?.name) { try { entity.learn({ kind: 'secret', text: `the human found Doto's secret move "${String(msg.data.name).slice(0, 24)}"` }); } catch (err) { log('entity', String(err)); } }
+    if (ok && msg?.type === 'entity.secret' && msg.data?.name) {
+      try {
+        const name = String(msg.data.name).slice(0, 24);
+        if (entity.noteSecret(name)) entity.learn({ kind: 'secret', text: `the human found ${entity.persona.name}'s secret move "${name}"` });
+      } catch (err) { log('entity', String(err)); }
+    }
     return ok;
   };
 
@@ -288,15 +293,19 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
     },
     {
       name: 'entity',
-      description: 'The companion ("you"): brief (persona + learned profile + skill index), learn (record an observation / adjust traits / likes / nicknames), teach (write a SPECIAL SKILL markdown playbook for future sessions), skills/skill (list/read), reinforce (skill worked / failed), forget, mood, rename.',
+      description: 'The companion ("you"): brief (persona + learned profile + skill index), learn (record an observation / adjust traits / likes / nicknames), teach (write a SPECIAL SKILL markdown playbook for future sessions), skills/skill (list/read), reinforce (skill worked / failed), forget (a skill), mood, rename. For den (his home) edits: full (everything he knows), set (assign name/tagline/traits/color directly), unlearn (remove likes/dislikes/nickname keys/memory lines by ts), memory (recent lines with ts), reset (persona back to defaults; memory kept).',
       inputSchema: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['brief', 'learn', 'teach', 'skills', 'skill', 'reinforce', 'forget', 'mood', 'rename', 'profile'] },
+          action: { type: 'string', enum: ['brief', 'learn', 'teach', 'skills', 'skill', 'reinforce', 'forget', 'mood', 'rename', 'profile', 'full', 'set', 'unlearn', 'memory', 'reset'] },
           text: { type: 'string', description: 'learn: the observation' }, kind: { type: 'string', description: 'learn: note|preference|habit|request|style' },
-          traits: { type: 'object', description: 'learn: partial {speed,distance,chatty,playful,formality,curiosity} 0..1' },
-          likes: { type: 'array', items: { type: 'string' } }, dislikes: { type: 'array', items: { type: 'string' } }, nicknames: { type: 'object' },
-          name: { type: 'string', description: 'teach/skill/reinforce/forget: skill name; rename: new companion name' },
+          traits: { type: 'object', description: 'learn: partial {speed,distance,chatty,playful,formality,curiosity} 0..1, blended in; set: assigned as given' },
+          likes: { type: 'array', items: { type: 'string' }, description: 'learn: add; unlearn: remove exactly these' }, dislikes: { type: 'array', items: { type: 'string' } },
+          nicknames: { description: 'learn: {key: value} to add; unlearn: [keys] to remove' },
+          memory: { type: 'array', items: { type: 'number' }, description: 'unlearn: the ts of the memory lines to remove (from `memory` / `full`)' },
+          n: { type: 'integer', description: 'memory: how many recent lines (default 30)' },
+          tagline: { type: 'string', description: 'set: his tagline' }, color: { type: 'string', description: 'set: his colour, #rrggbb' },
+          name: { type: 'string', description: 'teach/skill/reinforce/forget: skill name; rename/set: new companion name' },
           triggers: { type: 'array', items: { type: 'string' }, description: 'teach: phrases/situations that should recall this skill' },
           body: { type: 'string', description: 'teach: the playbook (markdown): when, steps, commands to send, pitfalls' },
           confidence: { type: 'number' }, unique: { type: 'string' }, ok: { type: 'boolean' }, mood: { type: 'string' },
@@ -320,6 +329,11 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
           case 'forget': return { forgotten: entity.forget(a.name) };
           case 'mood': { entity.setMood(a.mood); bus.send({ type: 'entity.mood', data: { mood: a.mood } }); return { mood: a.mood }; }
           case 'rename': { const n = entity.rename(a.name); bus.send({ type: 'entity.persona', data: entity.personaForShell() }); return { name: n }; }
+          case 'full': return entity.full();
+          case 'memory': return { memory: entity.memory(a.n ?? 30) };
+          case 'set': { const persona = entity.set(a); bus.send({ type: 'entity.persona', data: entity.personaForShell() }); return { persona }; }
+          case 'unlearn': return entity.unlearn({ likes: a.likes, dislikes: a.dislikes, nicknames: Array.isArray(a.nicknames) ? a.nicknames : Object.keys(a.nicknames || {}), memory: a.memory });
+          case 'reset': { const persona = entity.reset(); bus.send({ type: 'entity.persona', data: entity.personaForShell() }); return { persona }; }
           default: return { error: 'unknown action' };
         }
       },

@@ -10,7 +10,7 @@ const { validate } = await import('../engine/src/validate.mjs');
 const { Bus, matchType } = await import('../engine/src/bus.mjs');
 const { Router } = await import('../engine/src/router.mjs');
 const { Entity, slug, migratePersona } = await import('../engine/src/entity.mjs');
-const { inspectUnique } = await import('../engine/src/registry.mjs');
+const { inspectUnique, Registry } = await import('../engine/src/registry.mjs');
 const { imageSize } = await import('../engine/src/imagesize.mjs');
 const { Sessions, summarize } = await import('../engine/src/sessions.mjs');
 const { Store, copyDir } = await import('../engine/src/store.mjs');
@@ -128,6 +128,7 @@ test('sessions: export saves + labels + resume command; summary reads labels', (
   const cmd = s.restoreCommand(got);
   assert.equal(cmd.type, 'graph.load');
   assert.equal(cmd.data.graph.nodes.length, 3);
+  assert.deepEqual(cmd.data.session, { id: got.id, resumed: true });
   assert.equal(s.get('graph', rec.id.slice(0, 6)).id, rec.id, 'prefix lookup');
   assert.equal(s.remove('graph', rec.id), true);
   assert.equal(s.get('graph', 'last'), null);
@@ -172,4 +173,63 @@ test('store: remove refuses traversal; copyDir skips symlinks and nested .git', 
 test('imagesize: png header', () => {
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAADCAYAAAC56t6BAAAADklEQVQIW2NkYGD4DwABBAEAHnOcQAAAAABJRU5ErkJggg==', 'base64');
   assert.deepEqual(imageSize(png), { w: 2, h: 3 });
+});
+
+test('entity: den edits — full, set, unlearn (memory by ts), secrets, reset', () => {
+  const e = new Entity();
+  e.learn({ text: 'den test line', likes: ['den like'], dislikes: ['den dislike'], nicknames: { 'the board': 'graph 1' } });
+  const full = e.full();
+  assert.ok(full.persona.likes.includes('den like'));
+  assert.ok(full.persona.dislikes.includes('den dislike'));
+  assert.equal(full.persona.nicknames['the board'], 'graph 1');
+  assert.ok(Array.isArray(full.secretsAll) && full.secretsAll.includes('nightcap'));
+  assert.equal(full.defaults.name, 'Doto');
+  assert.ok(Array.isArray(full.skills) && Array.isArray(full.profile.secrets));
+  const line = full.memory.find((m) => m.text === 'den test line');
+  assert.ok(line && line.ts > 0 && line.kind === 'note');
+  // secrets: counted once, persisted
+  assert.equal(e.noteSecret('spin'), true);
+  assert.equal(e.noteSecret('spin'), false);
+  assert.equal(e.noteSecret('not-a-move'), false);
+  e.learn({ text: 'a' }); e.learn({ text: 'b' });
+  const ids = e.memory(0).map((m) => m.ts);
+  assert.equal(new Set(ids).size, ids.length, 'memory ids are unique');
+  assert.equal(e.memory(0).length > 0, true);
+  assert.deepEqual(new Entity().profile.secrets, ['spin']);
+  // set: direct assignment, clamped, unknown traits and bad colours ignored
+  e.set({ name: '  Nova ', tagline: 'a test', traits: { chatty: 2, bogus: 1 }, color: 'red' });
+  assert.equal(e.persona.name, 'Nova');
+  assert.equal(e.persona.tagline, 'a test');
+  assert.equal(e.persona.traits.chatty, 1);
+  assert.equal('bogus' in e.persona.traits, false);
+  assert.equal(e.persona.color, '#a66bff');
+  e.set({ color: '#ff6bd6' });
+  assert.equal(e.persona.color, '#ff6bd6');
+  // unlearn: exactly these, and the memory line by its ts
+  const r = e.unlearn({ likes: ['den like', 'not there'], dislikes: ['den dislike'], nicknames: ['the board'], memory: [line.ts] });
+  assert.deepEqual(r.removed, { likes: 1, dislikes: 1, nicknames: 1, memory: 1 });
+  assert.equal(e.memory(100).some((m) => m.ts === line.ts), false);
+  const e2 = new Entity();
+  assert.equal(e2.persona.likes.includes('den like'), false);
+  assert.equal('the board' in e2.persona.nicknames, false);
+  // reset: persona defaults, memory and secrets kept
+  e2.reset();
+  assert.equal(e2.persona.name, 'Doto');
+  assert.equal(e2.persona.tagline, 'a dot that does');
+  assert.equal(e2.persona.traits.chatty, 0.4);
+  assert.equal(e2.persona.color, '#a66bff');
+  assert.deepEqual(e2.profile.secrets, ['spin']);
+});
+
+test('registry: a symlinked or junctioned unique folder is found', () => {
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'lets-link-'));
+  const target = path.join(PLUGIN_ROOT, 'tests', 'fixtures', 'uniques', 'mini');
+  fs.symlinkSync(target, path.join(parent, 'mini'), 'junction');   // a junction on Windows, a plain symlink elsewhere
+  const prev = process.env.LETS_UNIQUES_DIRS;
+  process.env.LETS_UNIQUES_DIRS = parent;
+  try {
+    const reg = new Registry();
+    const u = reg.get('mini');
+    assert.ok(u && u.ok, 'the linked unique should be registered: ' + JSON.stringify(u?.problems));
+  } finally { if (prev === undefined) delete process.env.LETS_UNIQUES_DIRS; else process.env.LETS_UNIQUES_DIRS = prev; }
 });

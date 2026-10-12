@@ -104,6 +104,7 @@ export class Host {
       if (p === '/lip/command' && req.method === 'POST') return this._command(req, res, url);
       if (p === '/lip/listen' && req.method === 'GET') return this._listen(res, url);
       if (p === '/lip/persona' && req.method === 'GET') return this._json(res, 200, this.entity ? this.entity.personaForShell() : {});
+      if (p === '/lip/entity' && req.method === 'GET') return this._json(res, 200, this.entity ? this.entity.full() : {});
       if (p === '/lip/windows' && req.method === 'GET') return this._json(res, 200, this.bus.windowList());
       return this._json(res, 404, { error: 'unknown lip endpoint' });
     }

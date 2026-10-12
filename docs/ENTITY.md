@@ -73,6 +73,17 @@ Three honest channels, all on disk:
 Nothing is inferred silently. If the companion "knows" something, there is a
 line in `memory.jsonl`, a field in `profile.json` or a skill file that says so.
 
+**den** (the second default unique) is where the human sees all three channels
+and edits them by pointing: persona and traits, likes, dislikes and nicknames,
+memory lines, special skills, the secret moves found, and the profile. Its data
+is `GET /lip/entity`, the same payload as `entity full`. The engine applies
+the human's edits only through Claude, with the `entity` tool: `unlearn` removes
+likes, dislikes, nicknames and memory lines (by `ts`), `learn` adds them, `set`
+assigns the persona directly, `forget` and `reinforce` act on skills, and
+`reset` puts name, tagline, colour and traits back to the defaults (likes,
+memory and skills are kept). Until Claude has confirmed an edit, den shows its
+line as pending.
+
 ## Voice
 
 In the window the companion speaks as Doto. In the transcript Claude keeps
@@ -148,4 +159,7 @@ Seven of these are secrets: `spin`, `dance`, `disco`, `dizzy` by circling,
 `nightcap`, a streak of five boops, and `wheee`. The first time the human
 finds one in a window, the shell emits `entity.secret {name}` once, counts it
 in the profile (`secrets`), and the companion says so in one line. Claude may
-mention a find, rarely; the engine notes it in `memory.jsonl`.
+mention a find, rarely; the engine notes it in `memory.jsonl`, using the
+companion's current name. The names found are kept in `profile.json`
+(`secrets`, in order of discovery) and shown in den: found ones lit, the rest a
+`?` with no hint.

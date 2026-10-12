@@ -2,10 +2,15 @@
 /**
  * lets CLI — for development and for humans.
  *
- *   lets serve [--port N] [--open <unique>]   run the host standalone (no MCP) and print URLs
+ *   lets serve [--port N] [--open <unique>] [--verbose]   run the host standalone (no MCP), print URLs, --verbose prints every up-event
  *   lets open <unique>                         open a window on an already-running host (or start one)
+ *   lets url <unique> [--port N] [--window ID] print a window URL for a running host (the token is in it)
+ *   lets send <type> ['{json}'] [--to W] [--port N]   send a down-command to a running host
+ *   lets events [--cursor NAME] [--port N]     drain pending up-events from a running host (cursor "events")
+ *   lets listen [--wait MS] [--cursor NAME]    block until the human does something (Claude's attentive loop)
  *   lets validate [dir]                        validate a unique folder (default: every known unique)
  *   lets uniques                               list uniques
+ *   lets defaults [--force] [--only NAME]      install the default uniques (graph, den) from git
  *   lets entity                                print the companion brief
  *   lets sessions [unique] [--rm ID]           list saved sessions (what was sent to Claude), or delete one
  *   lets install-skill                         install the bare `/lets` personal skill into ~/.claude/skills
@@ -117,7 +122,7 @@ switch (cmd) {
     // drain pending events from a running host:  lets events [--cursor NAME] [--port N]
     const run = findHost(flags.port);
     if (!run) { print('no running host'); process.exit(1); }
-    const res = await fetch(`http://127.0.0.1:${run.port}/lip/drain?cursor=${encodeURIComponent(flags.cursor || 'cli')}&max=100`, { headers: { 'x-lets-token': run.token } });
+    const res = await fetch(`http://127.0.0.1:${run.port}/lip/drain?cursor=${encodeURIComponent(flags.cursor || 'events')}&max=100`, { headers: { 'x-lets-token': run.token } });
     print(await res.json());
     break;
   }
@@ -151,5 +156,5 @@ switch (cmd) {
     break;
   }
   default:
-    print(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(2, 12).join('\n').replace(/^ \* ?/gm, ''));
+    print(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(2, 17).join('\n').replace(/^ \* ?/gm, ''));
 }

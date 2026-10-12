@@ -30,7 +30,7 @@
 | Layer | What it does |
 |---|---|
 | **Engine** (`engine/`) | A zero-dependency Node MCP server. Hosts windows on loopback, carries the protocol, keeps the companion's memory and your saved sessions, routes multi-task work to the cheapest trustworthy model, installs community mediums from git. |
-| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP, each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. First one: [graph](https://github.com/TikoTikTok/lets-unique-graph). |
+| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP, each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. Two ship today: [graph](https://github.com/TikoTikTok/lets-unique-graph), the board, and [den](https://github.com/TikoTikTok/lets-unique-den), Doto's home. |
 | **Shell + SDK** (`sdk/`) | What every unique gets for free: the companion (Doto), chat panel, runtime components (sliders, options, forms, image paste…), toasts, theme. |
 
 Everything crosses **LIP**, the *Lets Interaction Protocol* ([protocol/LIP.md](protocol/LIP.md)): typed JSON envelopes, up (human → Claude) and down (Claude → window). It is designed for mediums that do not exist yet; a unique for voice, AR or a haptic strip speaks the same envelope.
@@ -55,7 +55,7 @@ Needs Node 18+, the `claude` CLI on PATH, and git credentials that can read the 
 gh repo clone TikoTikTok/lets && cd lets && node install.mjs
 ```
 
-The installer adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, installs the default uniques (graph) into `~/.lets/uniques`, and installs a personal `/lets` alias. Restart the app or run `/reload-plugins` once, then both of these work in any session:
+The installer adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, installs the default uniques (graph, den) into `~/.lets/uniques`, and installs a personal `/lets` alias. Restart the app or run `/reload-plugins` once, then both of these work in any session:
 
 ```
 /lets:lets graph
@@ -90,6 +90,7 @@ and `node engine/bin/lets.mjs install-skill` for the bare `/lets` alias. Update 
 | `/lets list` | the uniques this machine knows (and which are healthy) |
 | `/lets store <query>` | search the community store; install only after you inspect and say yes |
 | `/lets entity` | meet Doto: who he is, what he learned, which special skills he has |
+| `/lets den` | open his home: see everything he learned about you and edit or forget any of it by pointing (see [How it learns](#how-it-learns)) |
 | `/lets plan <work>` | split work into waves and pick a model per task (see [Model routing](#model-routing)) |
 
 A session, start to finish:
@@ -110,7 +111,7 @@ Saved sessions live in `~/.lets/sessions/<unique>/<sessionId>.json` (board, labe
 
 ## Doto, the companion
 
-Doto is a dot that does. He is the smallest mark you can put on a board, and the one everything else gets drawn from. He is Claude's presence inside the window: a small round dot of light that rolls up beside your cursor on a gentle spring and rolls aside whenever he would cover what you point at. Click him for suggestions. He would rather do the next thing than talk about it, so he does, then tells you. He counts things, ends his lines on a dot, and does more than he says. He learns how you work and teaches himself special skills. The name is a default; it is yours to change.
+Doto is a dot that does. He is the smallest mark you can put on a board, and the one everything else gets drawn from. He is Claude's presence inside the window: a small round dot of light that rolls up beside your cursor on a gentle spring and rolls aside whenever he would cover what you point at. Click him for suggestions. He would rather do the next thing than talk about it, so he does, then tells you. He counts things, ends his lines on a dot, and does more than he says. He learns how you work and teaches himself special skills, and [den](#how-it-learns) is where you see and edit what he learned. The name is a default; it is yours to change.
 
 <p align="center">
   <img src="assets/screenshot-companion.jpg" width="640" alt="Doto in the shell demo: his click menu next to the mood and chat buttons and the event log">
@@ -179,7 +180,7 @@ Doto has a few moves he only makes when you find the trick. No spoilers, only pl
 - Pick him up and drag him around.
 - Visit after midnight.
 
-Finding one is counted in Doto's profile (`secrets`), and he may say so. It happens once per secret per window, so it stays a surprise.
+Finding one is recorded in Doto's profile (`secrets` keeps the names you found), and he may say so. It happens once per secret per window, so it stays a surprise. In [den](#how-it-learns) the ones you found are lit; the rest stay a `?`, with no hint.
 
 ### How it learns
 
@@ -193,14 +194,19 @@ Three honest channels, all on disk, all in `~/.lets/entity`:
 
 The persona (name, traits, likes) is in `persona.json` next to them. Nothing is inferred silently: if Doto "knows" something, there is a line, a field or a file that says so. Delete `~/.lets/entity` and Doto starts over.
 
-### See it, rename it
+**den is where you see all of it, and edit or forget what you point at.** Run `/lets den` and the persona (name, tagline, colour, the six traits as sliders, likes, dislikes, nicknames), the memory lines, the special skills, the secret moves you found and your interaction profile are laid out as Doto's home. Point at a line to forget it, drag a trait slider, click his name to rename him. The window updates at once and marks the line as waiting; Claude then applies the change with the `entity` tool, confirms it, and Doto says one line. An edit made in den reaches these files only through Claude. **Send to Claude** in den is a handoff for a memory review in the chat, and *continue* reopens den with the live state.
+
+### See it, rename it, edit it
 
 ```
+/lets den                     Doto's home: see and edit everything he learned, by pointing
 /lets entity                  who Doto is, what he learned, which skills he has
 /lets entity rename Spark     give him another name
 /lets entity forget <skill>   drop a skill he taught himself
 node engine/bin/lets.mjs entity     the same brief, from a terminal
 ```
+
+Claude drives the same through the `entity` tool: besides `brief`, `learn`, `teach`, `reinforce` and `forget`, 0.6.0 adds `full` (the whole state), `set` (assign name, tagline, colour or traits directly), `unlearn` (remove likes, dislikes, nicknames or memory lines), `memory` (recent lines with their `ts`) and `reset` (name, tagline, colour and traits back to defaults; likes, memory and skills are kept). The cheat-sheet is [skills/lets/reference.md](skills/lets/reference.md).
 
 ## Listening vs away
 
@@ -214,11 +220,12 @@ In the terminal CLI you can also load the plugin as a channel (`claude --dangero
 
 The engine knows nothing about graphs. A unique is a repository with a manifest, a guide and a static UI; the engine serves it, gives it Doto and the protocol, and that is all.
 
-[defaults.json](defaults.json) is the **approved list every installation gets**. Those uniques are installed from git into `~/.lets/uniques` the first time the engine runs or the first time you open one; `node engine/bin/lets.mjs defaults` does it by hand, and `LETS_NO_DEFAULTS=1` opts out. Today the list is exactly one entry:
+[defaults.json](defaults.json) is the **approved list every installation gets**. Those uniques are installed from git into `~/.lets/uniques` the first time the engine runs or the first time you open one; `node engine/bin/lets.mjs defaults` does it by hand, and `LETS_NO_DEFAULTS=1` opts out. Today the list is exactly two entries:
 
 | Unique | What you do with it | Repo | Default |
 |---|---|---|---|
 | `graph` | talk in diagrams: draw flows and ideas on a node/edge board while Claude and Doto read and edit the same graph | [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | yes |
+| `den` | see what Doto learned about you and edit or forget any of it by pointing: persona, traits, likes, nicknames, memory lines, special skills, the secret moves you found | [lets-unique-den](https://github.com/TikoTikTok/lets-unique-den) | yes |
 
 Also available (not default):
 
@@ -265,7 +272,7 @@ hooks/            UserPromptSubmit hook: delivers window events with every promp
 engine/           host, bus, registry, entity, router, store, MCP server
 sdk/              lets-client.js (transport), lets-shell.js/.css (Doto, chat, components)
 install.mjs       one-command installer (INSTALL.md is the agent-facing version)
-defaults.json     uniques installed on first use (graph)
+defaults.json     uniques installed on first use (graph, den)
 uniques/          bundled uniques (none; see uniques/README.md)
 tests/fixtures/   a minimal unique the tests run against
 protocol/         LIP.md + JSON schemas

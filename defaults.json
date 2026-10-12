@@ -8,6 +8,13 @@
       "repo": "https://github.com/TikoTikTok/lets-unique-graph.git",
       "path": "",
       "ref": "main"
+    },
+    {
+      "name": "den",
+      "title": "Den — Doto's home",
+      "repo": "https://github.com/TikoTikTok/lets-unique-den.git",
+      "path": "",
+      "ref": "main"
     }
   ]
 }

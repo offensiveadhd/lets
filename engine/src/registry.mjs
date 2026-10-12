@@ -57,7 +57,8 @@ export class Registry {
     this.uniques.clear();
     for (const src of this.sources) {
       let names = [];
-      try { names = fs.readdirSync(src.dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); } catch { continue; }
+      // a symlink or a Windows junction to a unique folder counts too (docs/UNIQUES.md option b): stat follows it
+      try { names = fs.readdirSync(src.dir, { withFileTypes: true }).filter((d) => d.isDirectory() || (!d.isFile() && isDirThrough(path.join(src.dir, d.name)))).map((d) => d.name); } catch { continue; }
       for (const name of names) {
         const dir = path.join(src.dir, name);
         if (!fs.existsSync(path.join(dir, 'unique.json'))) continue;
@@ -95,4 +96,9 @@ export class Registry {
     const cm = Object.entries(m.commands || {}).map(([t, d]) => `${t} — ${d.summary}`);
     return { name: m.name, title: m.title, version: m.version, description: m.description, domains: m.domains, capabilities: m.capabilities, events: ev, commands: cm, permissions: m.permissions || {}, session: m.session || null };
   }
+}
+
+/** True when `p` is a directory, following symlinks and junctions. */
+function isDirThrough(p) {
+  try { return fs.statSync(p).isDirectory(); } catch { return false; }
 }
