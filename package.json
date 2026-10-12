@@ -1,6 +1,6 @@
 {
   "name": "lets",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "lets — an engine for talking to Claude through rich interactive windows (uniques), with a companion entity, a shareable protocol (LIP) and a git-based store.",
   "type": "module",
   "private": true,
@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node engine/bin/lets.mjs serve --open graph",
     "mcp": "node engine/bin/lets-mcp.mjs",
-    "test": "node --test tests/",
+    "test": "node --test tests/unit.test.mjs",
     "validate": "node engine/bin/lets.mjs validate"
   },
   "repository": { "type": "git", "url": "https://github.com/TikoTikTok/lets.git" },

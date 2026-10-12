@@ -28,6 +28,9 @@ export function inspectUnique(dir) {
       if (!(manifest.domains || []).includes(dom)) problems.push(`${kind}.${t}: domain "${dom}" not declared`);
     }
   }
+  for (const [role, t] of Object.entries(manifest.session || {})) {
+    if (typeof t === 'string' && !(manifest.domains || []).includes(t.split('.')[0])) problems.push(`session.${role}: domain "${t.split('.')[0]}" not declared`);
+  }
   const entry = manifest.entry ? path.resolve(dir, manifest.entry) : null;
   if (entry && !isInside(dir, entry)) problems.push('entry escapes the unique folder');
   if (entry && !fs.existsSync(entry)) problems.push(`entry not found: ${manifest.entry}`);
@@ -90,6 +93,6 @@ export class Registry {
     const m = u.manifest;
     const ev = Object.entries(m.events || {}).map(([t, d]) => `${t} — ${d.summary}`);
     const cm = Object.entries(m.commands || {}).map(([t, d]) => `${t} — ${d.summary}`);
-    return { name: m.name, title: m.title, version: m.version, description: m.description, domains: m.domains, capabilities: m.capabilities, events: ev, commands: cm, permissions: m.permissions || {} };
+    return { name: m.name, title: m.title, version: m.version, description: m.description, domains: m.domains, capabilities: m.capabilities, events: ev, commands: cm, permissions: m.permissions || {}, session: m.session || null };
   }
 }

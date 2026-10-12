@@ -1,0 +1,108 @@
+name: Bug report
+description: Something in lets does not work the way it should
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. A good report gets a fast fix.
+
+        **Security problem?** Do not file it here. Use a private advisory instead: https://github.com/TikoTikTok/lets/security/advisories/new (see SECURITY.md).
+
+        **Bug in a unique?** If it only happens inside one unique's window and the engine looks fine, the unique's own repository is the better place (for graph: https://github.com/TikoTikTok/lets-unique-graph). If you are not sure, file it here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Say what you saw. Include any message from Claude, from Pip, or from the terminal, word for word.
+      placeholder: "I pressed Send to Claude and the window stayed open."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest list of steps that makes it happen.
+      placeholder: |
+        1. /lets graph plan the auth flow
+        2. Add three nodes
+        3. Press Send to Claude
+        4. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "Output of `node engine/bin/lets.mjs doctor`"
+      description: |
+        Run it from your lets checkout and paste the result.
+        **Remove the value of any `token` field first.** While a window is open, the output includes the host's secret token. Replace it with REDACTED. Also remove it from any window URL (`#w=...&t=...`) you paste anywhere in this issue.
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other (say which below)
+    validations:
+      required: true
+  - type: input
+    id: claude-code-version
+    attributes:
+      label: Claude Code version
+      description: "The output of `claude --version`."
+      placeholder: "e.g. 2.1.287"
+    validations:
+      required: true
+  - type: input
+    id: lets-version
+    attributes:
+      label: lets version
+      description: "From `claude plugin list`, or the version in package.json of your checkout."
+      placeholder: "e.g. 0.4.0"
+  - type: dropdown
+    id: unique
+    attributes:
+      label: Which unique?
+      options:
+        - graph
+        - pulse
+        - another unique (name it below)
+        - none, or the engine / install / Pip itself
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did you run it?
+      options:
+        - Claude desktop app (built-in browser pane)
+        - Claude Code in a terminal
+        - Opened in my default browser (launch "system")
+        - Not sure
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else?
+      description: Screenshots, logs from `~/.lets/logs/` (run with `LETS_DEBUG=1` to see them on stderr), what you already tried.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the existing issues.
+          required: true
+        - label: I removed tokens and private paths from everything I pasted.
+          required: true

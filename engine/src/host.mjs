@@ -21,7 +21,8 @@ const MIME = {
 };
 const MAX_UPLOAD = 25 * 1024 * 1024;
 const MAX_EVENT_BODY = 1024 * 1024;
-const CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'";
+const CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'";
+const redact = (u) => String(u).replace(/([?&#]t=)[^&#\s]+/g, '$1[redacted]');
 
 export class Host {
   constructor({ log = () => {}, projectDir = process.cwd(), entity = null } = {}) {
@@ -40,7 +41,7 @@ export class Host {
 
   async start(preferredPort = Number(process.env.LETS_PORT) || 0) {
     this.server = http.createServer((req, res) => this._handle(req, res).catch((err) => {
-      this.log('host', `error ${req.method} ${req.url}: ${err.stack || err}`);
+      this.log('host', `error ${req.method} ${redact(req.url)}: ${err.stack || err}`);
       if (!res.headersSent) { res.writeHead(500, { 'content-type': 'text/plain' }); }
       res.end('internal error');
     }));
@@ -170,10 +171,11 @@ export class Host {
     try { msgs = JSON.parse(body); } catch { return this._json(res, 400, { error: 'bad json' }); }
     const list = Array.isArray(msgs) ? msgs : [msgs];
     const w = url.searchParams.get('w');
+    if (!w) return this._json(res, 400, { error: 'w (window id) required' });   // every event is bound to the window that sent it
     let accepted = 0;
     for (const m of list) {
       if (!m || typeof m !== 'object') continue;
-      if (w && m.from && !String(m.from).endsWith(`#${w}`) && m.from !== 'hook') continue; // no spoofing other windows
+      if (!m.from || !String(m.from).endsWith(`#${w}`)) continue;                 // no spoofing other windows, the host or the hook
       if (this.bus.push(m)) accepted++;
       if (w) { const win = this.bus.windows.get(w); if (win) win.lastSeen = Date.now(); }
     }

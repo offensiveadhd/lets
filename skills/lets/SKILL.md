@@ -1,8 +1,8 @@
 ---
 name: lets
-description: Open and drive a "unique" — an interactive window (graph board first) where the human talks to you graphically while chatting, with a companion entity that follows the cursor, suggests, learns the user and teaches itself special skills. Use for "/lets graph", "lets graph", "open the graph window", "show me this as a graph", "let me draw it for you", "open a chat view / image uploader in the window", "lets store", "lets plan", or whenever the human wants to point at things instead of typing them.
-argument-hint: "<unique> [args] | list | store <query> | entity | plan"
-allowed-tools: mcp__plugin_lets_lets__open mcp__plugin_lets_lets__listen mcp__plugin_lets_lets__send mcp__plugin_lets_lets__say mcp__plugin_lets_lets__query mcp__plugin_lets_lets__state mcp__plugin_lets_lets__uniques mcp__plugin_lets_lets__store mcp__plugin_lets_lets__entity mcp__plugin_lets_lets__plan mcp__lets__open mcp__lets__listen mcp__lets__send mcp__lets__say mcp__lets__query mcp__lets__state mcp__lets__uniques mcp__lets__store mcp__lets__entity mcp__lets__plan mcp__Claude_Browser__preview_start mcp__Claude_Browser__navigate mcp__Claude_Browser__tabs_context Read
+description: Open and drive a "unique" — an interactive window (graph board first) where the human talks to you graphically while chatting, with a companion entity that follows the cursor, suggests, learns the user and teaches itself special skills. Use for "/lets graph", "lets graph", "open the graph window", "show me this as a graph", "let me draw it for you", "continue the board", "bring back the graph", "lets resume", "open a chat view / image uploader in the window", "lets store", "lets plan", or whenever the human wants to point at things instead of typing them.
+argument-hint: "<unique> [args | resume [id]] | list | sessions | store <query> | entity | plan"
+allowed-tools: mcp__plugin_lets_lets__open mcp__plugin_lets_lets__listen mcp__plugin_lets_lets__send mcp__plugin_lets_lets__say mcp__plugin_lets_lets__query mcp__plugin_lets_lets__state mcp__plugin_lets_lets__uniques mcp__plugin_lets_lets__store mcp__plugin_lets_lets__entity mcp__plugin_lets_lets__plan mcp__plugin_lets_lets__sessions mcp__lets__open mcp__lets__listen mcp__lets__send mcp__lets__say mcp__lets__query mcp__lets__state mcp__lets__uniques mcp__lets__store mcp__lets__entity mcp__lets__plan mcp__lets__sessions mcp__Claude_Browser__preview_start mcp__Claude_Browser__navigate mcp__Claude_Browser__tabs_context mcp__Claude_Browser__tabs_close Read
 ---
 
 # lets — the engine that hosts uniques
@@ -23,18 +23,22 @@ improvise a transport.
 
 | `$0` | Do |
 |---|---|
-| a unique name (`graph`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). |
+| a unique name (`graph`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). `resume` / `continue` / `last` / `back` as the first extra word (or a saved session's label in the words) → **Resume** (below). |
 | `list` | `lets.uniques {action:"list"}` → show name, title, source, problems. `{action:"defaults"}` installs the missing default uniques (graph). |
+| `sessions` | `lets.sessions {action:"list"}` → show when, unique, label, summary; offer `/lets <unique> resume <id>`. |
 | `store …` | **Store flow**: `sync`, then `search` with the rest of the args; show results; install only after inspect + explicit yes. |
-| `entity` | `lets.entity {action:"brief"}` → tell the human who the companion is, what it learned, which special skills it has. `entity teach …` / `entity forget …` act on skills. |
+| `entity` | `lets.entity {action:"brief"}` → tell the human who the companion is, what it learned, which special skills it has. `entity teach …` / `entity forget …` act on skills; `entity rename <name>` renames the companion. |
 | `plan …` | **Plan flow**: turn the rest of the args into tasks, call `lets.plan`, spawn waves with the Agent tool, report outcomes. |
 | empty | List uniques and offer `/lets graph`. |
 
 ## Open flow
 
-1. `lets.open {unique:"$0", args:{intent:"<rest of args>"}}`. The result has
-   `url`, `windowId`, `guide` (the unique's own instructions), `summary`
-   (events/commands it speaks) and `entity` (persona + learned profile + skill index).
+1. `lets.open {unique:"$0", args:{intent:"<rest of args>"}}` (add `resume` per
+   the Resume rules). The result has `url`, `windowId`, `guide` (the unique's
+   own instructions), `summary` (events/commands it speaks), `entity` (persona
+   + learned profile + skill index), `sessions` (the 5 most recent boards the
+   human sent to you from this unique: `id, at, label, summary`) and
+   `resumed` when a session was restored.
 2. **Show the window.** In the Claude desktop app call
    `mcp__Claude_Browser__preview_start {url}` (or `navigate` if a pane is open).
    If no browser tool exists, call `lets.open` again with `launch:"system"`
@@ -47,9 +51,30 @@ improvise a transport.
 4. **Greet in the window**, once, short:
    `lets.say {via:"entity", mood:"happy", text:"<one line, in character>"}`.
    If the human gave an intent, start on it immediately (e.g. seed the board
-   with 3–6 nodes and ask one question).
-5. **Interact** (rules below) until the human closes the window or says so.
+   with 3–6 nodes and ask one question). If you resumed, greet with what came
+   back ("Back to *bounty harness* — 19 nodes, where were we?").
+   If you did **not** resume but `sessions` has a recent entry from this
+   project, mention it once in the window, in one short line
+   ("I still have *auth flow* from earlier; say *continue* to bring it back").
+5. **Interact** (rules below) until the human closes the window, sends the
+   board to you (**Handoff**, below) or says so.
 6. **Learn before leaving**: `lets.entity {action:"learn", kind:"note", text:"<what this session taught you about the human>", likes:[…], dislikes:[…]}`.
+
+### Resume (bringing a board back)
+
+The human's words decide:
+
+- "continue", "resume", "back to the board", "bring back the graph", "where
+  we left off" → `lets.open {unique, resume:"last"}` (the newest session of
+  this unique, this project first).
+- They name something ("the bounty board", "the auth flow from yesterday") →
+  look at `lets.sessions {action:"list", unique}` (labels + summaries) and
+  pass that session's `id` as `resume`. If two match, ask one short question.
+- `resume <id>` → that id (prefixes work).
+
+Resuming opens a **new** window whose first message is the unique's restore
+command (`graph.load` for graph) with the saved payload, so it is intact when
+you greet. The old window is gone; do not try to reconnect to it.
 
 ## Staying in the window (the attentive loop)
 
@@ -59,33 +84,66 @@ A window is only alive while you listen. After the greeting, **stay**:
    The window shows "Pip is listening" while you are inside this call.
 2. React to what came back (rules below), then go to 1 again.
 3. Keep looping while a window is connected. Leave only when the human closes
-   the window, says goodbye/stop/done in the window or the transcript, or
-   when **15 minutes** pass with no event at all — then say one line in the
-   window ("I'll be back when you ping me in Claude Code"), do the
-   *learn before leaving* step, and end the turn.
+   the window, hands the board to you (**Handoff**), says goodbye/stop/done in
+   the window or the transcript, or when **15 minutes** pass with no event at
+   all — then say one line in the window ("I'll be back when you ping me in
+   Claude Code"), do the *learn before leaving* step, and end the turn.
 4. A message typed in the Claude Code transcript while you loop reaches you
    between calls: answer it, then continue the loop unless it tells you to stop.
 
 Each empty wait costs ~100 tokens; that is the price of a live companion.
 Never spin with `wait_ms: 0` in a loop.
 
+## Handoff: "Send to Claude" closes the window
+
+When the human presses **Send to Claude**, the engine saves the board as a
+session, tells the window to close itself and marks the export event:
+`graph.export {session:{id, handoff:true, saved:true, summary}, graph}`.
+That is the human saying *"over to you, in the chat"*. So:
+
+1. **Do not answer in the window.** No `say`, no `send` to that window.
+2. **Close the pane tab** if it is still there: `mcp__Claude_Browser__tabs_context`,
+   find the tab whose origin is the lets host (`http://127.0.0.1:<port>`), then
+   `mcp__Claude_Browser__tabs_close {tabId}`. (The window tries to close itself
+   first; browser panes often cannot, so you finish the job.) If the human
+   pressed *Keep working* you will see `session.stay` — then stay in the loop
+   instead.
+3. **Answer in the transcript**, the way the unique's guide describes a
+   review (for graph: the flow in a few lines, gaps, concrete proposals), and
+   continue the conversation there. Offer to bring the board back
+   ("say *continue* and I'll reopen it with my suggestions drawn in").
+4. **Label the session**: `lets.sessions {action:"label", unique, id, label:"<3–6 words the human would use>"}`
+   (e.g. "bounty harness architecture"). Labels are how later resumes match
+   what the human asks for.
+5. **Leave the loop**: do the *learn before leaving* step and end the turn.
+
+`handoff` in the `open` result is `"close"` (default) or `"stay"`
+(`~/.lets/config.json` `"handoff": "stay"`); with `stay` the window remains
+and you review in the window as before.
+
 ## Interaction rules (token discipline)
 
 - Window events also reach you **on every prompt** through the prompt hook
   (`[lets] N window event(s)…`) when you are not looping. Treat them as part of
   the human's message. React through the window (`send`/`say`), not with long
-  transcript prose.
+  transcript prose — except after a handoff, which is answered in the transcript.
 - Before reasoning about a board, `lets.query {type:"graph.snapshot"}` — never
-  reconstruct it from memory of earlier events.
+  reconstruct it from memory of earlier events. (A snapshot also refreshes the
+  saved session, so a later resume gets the latest board.)
 - `chat.message` → answer with `say` (chat). `graph.ask` → answer in chat and
   `graph.highlight` the nodes you talk about; if the question asks you to add
   or rename, do it with `graph.node.add` / `graph.node.set` right away.
-  `graph.export` → one short reading of the flow in chat plus 1–3 concrete
-  suggestions as nodes/annotations. `entity.pick` → the shell already turned
+  `graph.export` → **Handoff** (above). `entity.pick` → the shell already turned
   it into a `graph.ask` or a local action; act on the `graph.ask`, not the pick.
+- `entity.secret {name}` → the human found one of the companion's secret moves
+  (double-click, typing p-i-p, the Konami code, circling it, a boop streak,
+  dragging it, a night visit). At most one playful line from the entity, and
+  only if you are not in the middle of something.
 - Batch commands: one `send` with several commands beats several sends.
 - Speak in the window the way the persona would (`chatty` low → one line).
   Use `entity.mood` honestly: `thinking` while you work, `proud` when done.
+  `entity.react {name}` plays a short expression (`cheer`, `wink`, `nod`,
+  `shake-no`, `sparkle`, …) — use it like punctuation, not a show.
 - Pasted images arrive as `media.image {path}` → `Read` the path, then react.
 - When the human asks for something the window does not have ("open an image
   uploader", "give me sliders for the weights"), **compose it now** from the
@@ -134,5 +192,5 @@ quieter companion). Never fake learning you did not do.
 ## Reference
 
 `${CLAUDE_SKILL_DIR}/reference.md` — command cheat-sheet with JSON examples.
-`${CLAUDE_PLUGIN_ROOT}/uniques/graph/GUIDE.md` — the graph unique's guide (also
-returned by `open`).
+The graph unique's guide comes back from `open` (it lives in the installed
+unique, `~/.lets/uniques/graph/GUIDE.md`).

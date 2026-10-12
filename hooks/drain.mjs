@@ -34,7 +34,11 @@ async function main() {
         const d = JSON.stringify(e.data ?? {});
         return `- ${e.type} (${String(e.from).replace(/^unique:/, '')}) ${d.length > 600 ? d.slice(0, 600) + '…' : d}`;
       });
-      blocks.push(`[lets] ${r.events.length} window event(s) since your last prompt (${open.length} window(s) open on ${base}):\n${lines.join('\n')}\nReact per the unique's guide; use the lets tools (send/say/query) to answer in the window.`);
+      const handoff = r.events.find((e) => e.data?.session?.handoff);
+      const tail = handoff
+        ? `A "Send to Claude" handoff is in this list (session ${handoff.data.session.id}): that window closed itself. Answer in THIS chat (review the content, propose next steps), label the session with the lets sessions tool, and bring it back later with open {resume}. Other events: react per the unique's guide with the lets tools.`
+        : `React per the unique's guide; use the lets tools (send/say/query) to answer in the window.`;
+      blocks.push(`[lets] ${r.events.length} window event(s) since your last prompt (${open.length} window(s) open on ${base}):\n${lines.join('\n')}\n${tail}`);
     } catch (err) {
       // stale run file: host gone
       if (err?.cause?.code === 'ECONNREFUSED') { try { fs.unlinkSync(file); } catch { /* ignore */ } }

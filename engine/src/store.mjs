@@ -9,12 +9,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { DIRS, PLUGIN_ROOT, readJson, writeJson } from './paths.mjs';
+import { DIRS, PLUGIN_ROOT, readJson, writeJson, isInside } from './paths.mjs';
 import { validate } from './validate.mjs';
 import { inspectUnique } from './registry.mjs';
 import { sha256 } from './ids.mjs';
 
 const DEFAULT_STORES = [{ name: 'lets-store', repo: 'https://github.com/TikoTikTok/lets-store.git' }];
+const NAME_RE = /^[a-z][a-z0-9-]{1,31}$/;
 const indexSchema = readJson(path.join(PLUGIN_ROOT, 'protocol', 'schemas', 'store-index.schema.json'));
 
 function git(args, cwd, timeout = 60_000) {
@@ -116,7 +117,7 @@ export class Store {
     if (!i.ok && !opts.force) return { installed: false, ...i, hint: 'fix the problems or pass force:true after the user explicitly accepts them' };
     const dest = path.join(DIRS.uniques, i.name);
     fs.rmSync(dest, { recursive: true, force: true });
-    copyDir(i.stage, dest, (rel) => !rel.startsWith('.git'));
+    copyDir(i.stage, dest, (rel) => !rel.startsWith('.git'));   // .git* at the top level; copyDir drops nested .git and symlinks
     this.installed[i.name] = { repo: i.repo, sha: i.sha, version: i.version, installedAt: new Date().toISOString(), manifestSha256: i.manifestSha256, path: opts.path || '' };
     writeJson(this.installedFile, this.installed);
     fs.rmSync(path.dirname(i.stage) === path.join(DIRS.stores, '_staging') ? i.stage : path.join(DIRS.stores, '_staging'), { recursive: true, force: true });
@@ -124,7 +125,9 @@ export class Store {
   }
 
   remove(name) {
+    if (!NAME_RE.test(String(name))) return { removed: false, reason: 'bad unique name' };
     const dest = path.join(DIRS.uniques, name);
+    if (!isInside(DIRS.uniques, dest)) return { removed: false, reason: 'bad unique name' };
     if (!this.installed[name] && !fs.existsSync(dest)) return { removed: false, reason: 'not installed' };
     fs.rmSync(dest, { recursive: true, force: true });
     delete this.installed[name];
@@ -133,6 +136,7 @@ export class Store {
   }
 
   update(name) {
+    if (!NAME_RE.test(String(name))) return { updated: false, reason: 'bad unique name' };
     const rec = this.installed[name];
     if (!rec) return { updated: false, reason: 'not installed' };
     return { updated: true, ...this.install(rec.repo, { path: rec.path }) };
@@ -153,12 +157,15 @@ function walk(dir, out = []) {
   return out;
 }
 
-function copyDir(src, dest, filter) {
+/** Copy a unique folder: regular files and directories only (symlinks are skipped, `.git` at any depth is dropped). */
+export function copyDir(src, dest, filter = () => true) {
   fs.mkdirSync(dest, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
     const rel = e.name;
-    if (!filter(rel)) continue;
+    if (rel === '.git' || !filter(rel)) continue;
     const s = path.join(src, e.name), d = path.join(dest, e.name);
-    if (e.isDirectory()) copyDir(s, d, () => true); else fs.copyFileSync(s, d);
+    if (e.isSymbolicLink()) continue;                      // never copy (and later serve) something that points elsewhere
+    if (e.isDirectory()) copyDir(s, d);
+    else if (e.isFile()) fs.copyFileSync(s, d);
   }
 }

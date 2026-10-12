@@ -12,6 +12,8 @@ const { Router } = await import('../engine/src/router.mjs');
 const { Entity, slug } = await import('../engine/src/entity.mjs');
 const { inspectUnique } = await import('../engine/src/registry.mjs');
 const { imageSize } = await import('../engine/src/imagesize.mjs');
+const { Sessions, summarize } = await import('../engine/src/sessions.mjs');
+const { Store, copyDir } = await import('../engine/src/store.mjs');
 const { PLUGIN_ROOT } = await import('../engine/src/paths.mjs');
 
 test('validator: envelope schema accepts a good envelope and rejects a bad one', () => {
@@ -85,6 +87,70 @@ test('registry: the fixture unique validates; escaping entry is rejected', () =>
   assert.equal(bad.ok, false);
   assert.ok(bad.problems.some((p) => /reserved domain/.test(p)));
   assert.ok(bad.problems.some((p) => /entry/.test(p)));
+});
+
+test('sessions: export saves + labels + resume command; summary reads labels', () => {
+  const registry = { get: (n) => (n === 'graph' ? { manifest: { domains: ['graph'], session: { export: 'graph.export', snapshot: 'graph.snapshot', restore: 'graph.load' } } } : null) };
+  const s = new Sessions({ registry, project: 'C:/p' });
+  const mk = (type, data) => ({ lip: 1, id: 'ev_X', ts: Date.now(), dir: 'up', from: 'unique:graph#w9', type, data });
+  assert.equal(s.roleOf(mk('graph.export', {})), 'export');
+  assert.equal(s.roleOf(mk('graph.snapshot', {})), 'snapshot');
+  assert.equal(s.roleOf(mk('graph.changed', {})), null);
+  assert.equal(s.roleOf({ ...mk('pulse.export', {}), from: 'unique:pulse#w1' }), 'export', 'fallback <domain>.export for manifests without a session block');
+  const graph = { nodes: [{ id: 'a', label: 'Scope' }, { id: 'b', label: 'Recon' }], edges: [{ id: 'e', from: 'a', to: 'b' }] };
+  const rec = s.save(mk('graph.export', { graph }), { role: 'export' });
+  assert.ok(rec.id.startsWith('s_'));
+  assert.equal(rec.data, undefined, 'strip() removes the payload');
+  assert.match(rec.summary, /Scope · Recon/);
+  assert.match(rec.summary, /2 nodes, 1 edges/);
+  const again = s.save(mk('graph.snapshot', { graph: { ...graph, nodes: [...graph.nodes, { id: 'c', label: 'Report' }] } }), { role: 'snapshot' });
+  assert.equal(again.id, rec.id, 'same window → same session');
+  assert.equal(s.list({ unique: 'graph' }).length, 1);
+  assert.equal(s.label('graph', rec.id, 'bounty harness').label, 'bounty harness');
+  const got = s.get('graph', 'last');
+  assert.equal(got.data.graph.nodes.length, 3);
+  const cmd = s.restoreCommand(got);
+  assert.equal(cmd.type, 'graph.load');
+  assert.equal(cmd.data.graph.nodes.length, 3);
+  assert.equal(s.get('graph', rec.id.slice(0, 6)).id, rec.id, 'prefix lookup');
+  assert.equal(s.remove('graph', rec.id), true);
+  assert.equal(s.get('graph', 'last'), null);
+  assert.equal(summarize({ title: 'Plan', items: [{ name: 'x' }, { name: 'y' }] }), 'Plan · x · y (2 items)');
+  assert.equal(s.handoff, 'close');
+});
+
+test('schemas: every file in protocol/schemas parses and is an object schema', () => {
+  const dir = path.join(PLUGIN_ROOT, 'protocol', 'schemas');
+  for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+    const doc = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    assert.equal(typeof doc, 'object', f);
+    assert.ok(doc.$schema || doc.type, `${f} looks like a schema`);
+  }
+  assert.equal(validate(null, {}).ok, false, 'a missing schema is an error, not a crash');
+  const uniqueSchema = JSON.parse(fs.readFileSync(path.join(dir, 'unique.schema.json'), 'utf8'));
+  const r = validate(uniqueSchema, { lip: 1, name: 'x1', version: '0.0.1', title: 't', entry: 'ui/index.html', domains: ['x1'], events: { 'x1.a': 5 } });
+  assert.equal(r.ok, false, 'a non-object event declaration is reported, not thrown');
+});
+
+test('store: remove refuses traversal; copyDir skips symlinks and nested .git', () => {
+  const store = new Store();
+  assert.deepEqual(store.remove('../../etc'), { removed: false, reason: 'bad unique name' });
+  assert.deepEqual(store.remove('..'), { removed: false, reason: 'bad unique name' });
+  assert.equal(store.remove('nothing-here').removed, false);
+  const src = fs.mkdtempSync(path.join(os.tmpdir(), 'lets-copy-'));
+  fs.mkdirSync(path.join(src, 'ui', '.git'), { recursive: true });
+  fs.writeFileSync(path.join(src, 'ui', 'index.html'), '<html></html>');
+  fs.writeFileSync(path.join(src, 'ui', '.git', 'HEAD'), 'ref');
+  const secret = path.join(src, '..', `lets-secret-${process.pid}.txt`);
+  fs.writeFileSync(secret, 'secret');
+  let linked = true;
+  try { fs.symlinkSync(secret, path.join(src, 'ui', 'leak.txt'), 'file'); } catch { linked = false; }   // needs privileges on some Windows setups
+  const dest = path.join(os.tmpdir(), `lets-copy-dest-${process.pid}`);
+  copyDir(src, dest);
+  assert.ok(fs.existsSync(path.join(dest, 'ui', 'index.html')));
+  assert.ok(!fs.existsSync(path.join(dest, 'ui', '.git')), 'nested .git dropped');
+  if (linked) assert.ok(!fs.existsSync(path.join(dest, 'ui', 'leak.txt')), 'symlink not copied');
+  fs.rmSync(dest, { recursive: true, force: true }); fs.rmSync(src, { recursive: true, force: true }); fs.rmSync(secret, { force: true });
 });
 
 test('imagesize: png header', () => {

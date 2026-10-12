@@ -6,10 +6,42 @@
   "description": "The smallest valid unique; used by the engine's tests.",
   "entry": "ui/index.html",
   "guide": "GUIDE.md",
-  "domains": ["mini"],
-  "capabilities": ["entity", "chat"],
-  "events": { "mini.ping": { "summary": "test ping" }, "mini.snapshot": { "summary": "reply to mini.snapshot" } },
-  "commands": { "mini.snapshot": { "summary": "ask for a snapshot" } },
-  "permissions": { "fs.write": ["uploads"], "net": [] },
-  "license": "MIT"
+  "domains": [
+    "mini"
+  ],
+  "capabilities": [
+    "entity",
+    "chat"
+  ],
+  "events": {
+    "mini.ping": {
+      "summary": "test ping"
+    },
+    "mini.snapshot": {
+      "summary": "reply to mini.snapshot"
+    },
+    "mini.export": {
+      "summary": "the human sent the window to Claude (handoff)"
+    }
+  },
+  "commands": {
+    "mini.snapshot": {
+      "summary": "ask for a snapshot"
+    },
+    "mini.load": {
+      "summary": "rebuild the window from a saved payload"
+    }
+  },
+  "permissions": {
+    "fs.write": [
+      "uploads"
+    ],
+    "net": []
+  },
+  "license": "MIT",
+  "session": {
+    "export": "mini.export",
+    "snapshot": "mini.snapshot",
+    "restore": "mini.load"
+  }
 }

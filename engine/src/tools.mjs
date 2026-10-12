@@ -11,14 +11,35 @@ import { matchType } from './bus.mjs';
 // background task, so one listen stays under that: 100 s max, 90 s is what the skill uses.
 const MAX_WAIT = 100_000;
 
-export function buildTools({ host, entity, router, store, log, provision = async () => [] }) {
+export function buildTools({ host, entity, router, store, sessions = null, log, provision = async () => [] }) {
   const bus = host.bus;
 
-  // fold entity.profile events into the persisted profile as they pass by
+  // Up-events pass through here before the ring buffer:
+  //  - entity.profile folds into the persisted profile; entity.secret is remembered;
+  //  - a unique's *export* event ("Send to Claude") is saved as a session, marked
+  //    `data.session = {id, handoff:true}` and, unless config says `handoff:"stay"`,
+  //    the window is told to close itself (`session.close`) so Claude answers in
+  //    the transcript. A *snapshot* reply silently refreshes the saved session.
   const origPush = bus.push.bind(bus);
   bus.push = (msg) => {
+    const role = sessions ? sessions.roleOf(msg) : null;
+    if (role) {
+      try {
+        const rec = sessions.save(msg, { role });
+        if (rec && role === 'export') {
+          const closing = sessions.handoff === 'close';
+          msg.data = { session: { id: rec.id, handoff: closing, saved: true, summary: rec.summary }, ...(msg.data || {}) };
+          if (closing) {
+            const w = String(msg.from).split('#')[1];
+            bus.send({ type: 'session.close', data: { reason: 'handoff', text: 'Sent to Claude ✦ see you in Claude Code', ms: 1400 }, from: 'host' }, w);
+            log('sessions', `handoff ${rec.unique}#${w} -> session ${rec.id}; window told to close`);
+          }
+        } else if (rec) msg.data = { session: { id: rec.id, saved: true }, ...(msg.data || {}) };
+      } catch (err) { log('sessions', String(err?.stack || err)); }
+    }
     const ok = origPush(msg);
     if (ok && msg?.type === 'entity.profile') { try { entity.absorbProfile(msg.data || {}); } catch (err) { log('entity', String(err)); } }
+    if (ok && msg?.type === 'entity.secret' && msg.data?.name) { try { entity.learn({ kind: 'secret', text: `the human found Pip's secret move "${String(msg.data.name).slice(0, 24)}"` }); } catch (err) { log('entity', String(err)); } }
     return ok;
   };
 
@@ -27,7 +48,7 @@ export function buildTools({ host, entity, router, store, log, provision = async
   const tools = [
     {
       name: 'open',
-      description: 'Open a unique (interactive window) and get its URL, guide and the companion brief. Opens nothing by itself unless launch="system" (default browser); in the Claude desktop app open the URL with the built-in browser tools instead.',
+      description: 'Open a unique (interactive window) and get its URL, guide, the companion brief and the recent saved sessions. resume:"last" (or a session id from the list) brings a board the human sent earlier back into the new window. Opens nothing by itself unless launch="system" (default browser); in the Claude desktop app open the URL with the built-in browser tools instead.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -36,10 +57,11 @@ export function buildTools({ host, entity, router, store, log, provision = async
           launch: { type: 'string', enum: ['none', 'system'], description: 'none (default): just return the URL. system: open in the OS default browser.' },
           windowId: { type: 'string', description: 'reuse a window id (reconnect) instead of creating a new one' },
           brief: { type: 'boolean', description: 'include the companion/entity brief (default true)' },
+          resume: { type: 'string', description: '"last" = the newest saved session of this unique (this project first), or a session id / id prefix: the window is rebuilt from what the human last sent to Claude' },
         },
         required: ['unique'],
       },
-      async handler({ unique, args = {}, launch = 'none', windowId, brief = true }) {
+      async handler({ unique, args = {}, launch = 'none', windowId, brief = true, resume = null }) {
         host.registry.refresh();
         let u = host.registry.get(unique);
         if (!u) {
@@ -52,10 +74,25 @@ export function buildTools({ host, entity, router, store, log, provision = async
         }
         if (!u.ok) return { error: `unique "${unique}" is invalid`, problems: u.problems };
         const { url, windowId: w } = host.windowUrl(unique, { windowId, args });
+        let resumed = null;
+        if (resume && sessions) {
+          const rec = sessions.get(unique, resume);
+          if (!rec) resumed = { error: `no saved session "${resume}" for ${unique}` };
+          else {
+            const cmd = sessions.restoreCommand(rec);
+            // queued now, delivered the moment the window attaches (before anything else)
+            bus.send({ ...cmd, from: 'host' }, w);
+            sessions.byWindow.set(w, rec.id);
+            resumed = { id: rec.id, at: rec.at, label: rec.label, summary: rec.summary, restore: cmd.type };
+          }
+        }
         if (launch === 'system') openSystem(url, log);
         return {
           url, windowId: w, unique, origin: host.origin,
           howToOpen: launch === 'system' ? 'opened in the default browser' : 'Open this URL in the built-in browser pane (preview_start/navigate) or pass launch:"system".',
+          resumed,
+          sessions: sessions ? sessions.list({ unique, limit: 5 }).map((s) => ({ id: s.id, at: s.at, label: s.label, summary: s.summary, project: s.project })) : [],
+          handoff: sessions ? sessions.handoff : 'stay',
           summary: host.registry.summary(unique),
           guide: host.registry.guideText(unique),
           entity: brief ? entity.brief() : undefined,
@@ -164,14 +201,15 @@ export function buildTools({ host, entity, router, store, log, provision = async
     },
     {
       name: 'state',
-      description: 'Inspect the engine: open windows, host info, uploads this session, installed uniques, or the companion.',
-      inputSchema: { type: 'object', properties: { what: { type: 'string', enum: ['windows', 'host', 'uploads', 'uniques', 'entity', 'all'] } } },
+      description: 'Inspect the engine: open windows, host info, uploads this session, installed uniques, saved sessions, or the companion.',
+      inputSchema: { type: 'object', properties: { what: { type: 'string', enum: ['windows', 'host', 'uploads', 'uniques', 'sessions', 'entity', 'all'] } } },
       async handler({ what = 'all' }) {
         const parts = {
           windows: () => bus.windowList(),
-          host: () => ({ origin: host.origin, port: host.port, pid: process.pid, stats: bus.stats, cursors: Object.fromEntries(bus.cursors), runFile: host.runFile }),
+          host: () => ({ origin: host.origin, port: host.port, pid: process.pid, stats: bus.stats, cursors: Object.fromEntries(bus.cursors), runFile: host.runFile, handoff: sessions?.handoff }),
           uploads: () => host.uploads,
           uniques: () => host.registry.refresh(),
+          sessions: () => (sessions ? sessions.list({ limit: 10 }) : []),
           entity: () => entity.brief(),
         };
         if (what !== 'all') return parts[what]();
@@ -219,6 +257,31 @@ export function buildTools({ host, entity, router, store, log, provision = async
           case 'installed': return store.listInstalled();
           case 'stores': return store.stores();
           case 'add_store': return store.addStore(a.name, a.repo);
+          default: return { error: 'unknown action' };
+        }
+      },
+    },
+    {
+      name: 'sessions',
+      description: 'Saved sessions: what the human handed to Claude from a window ("Send to Claude") so it can come back later with open {resume}. list (recent, per unique or all), get (one, with its payload), label (give it a short title so it can be found by what the human asks for), remove.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['list', 'get', 'label', 'remove'] },
+          unique: { type: 'string', description: 'filter / target unique (e.g. "graph")' },
+          id: { type: 'string', description: 'session id (or prefix), or "last"' },
+          label: { type: 'string', description: 'label: the short title (<= 80 chars)' },
+          limit: { type: 'integer', minimum: 1, maximum: 50 },
+        },
+        required: ['action'],
+      },
+      async handler({ action, unique, id, label, limit = 10 }) {
+        if (!sessions) return { error: 'sessions unavailable' };
+        switch (action) {
+          case 'list': return sessions.list({ unique: unique || null, limit });
+          case 'get': { if (!unique) return { error: 'unique required' }; const r = sessions.get(unique, id || 'last'); return r || { error: 'not found' }; }
+          case 'label': { if (!unique || !id) return { error: 'unique and id required' }; return sessions.label(unique, id, label) || { error: 'not found' }; }
+          case 'remove': { if (!unique || !id) return { error: 'unique and id required' }; return { removed: sessions.remove(unique, id) }; }
           default: return { error: 'unknown action' };
         }
       },

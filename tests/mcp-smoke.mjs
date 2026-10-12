@@ -35,7 +35,7 @@ try {
   proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
   const tools = await rpc('tools/list');
   const names = tools.result.tools.map((t) => t.name);
-  assert(['open', 'listen', 'send', 'say', 'query', 'state', 'uniques', 'store', 'entity', 'plan'].every((n) => names.includes(n)), `tools/list: ${names.join(',')}`);
+  assert(['open', 'listen', 'send', 'say', 'query', 'state', 'uniques', 'store', 'entity', 'plan', 'sessions'].every((n) => names.includes(n)), `tools/list: ${names.join(',')}`);
 
   const opened = await call('open', { unique: 'mini' });
   assert(opened.url?.startsWith('http://127.0.0.1:'), `open → ${opened.url}`);
@@ -90,6 +90,33 @@ try {
   assert(up.path?.endsWith('.png') && up.w === 2 && up.h === 3, `upload stored ${up.path} ${up.w}x${up.h}`);
   const media = await call('listen', { wait_ms: 1000, types: ['media.*'] });
   assert(media.events.some((e) => e.t === 'media.image'), 'media.image event emitted');
+
+  // handoff: a mini.export event is saved as a session, marked, and the window gets session.close
+  const exportEv = { ...ev, id: 'ev_TESTTESTTESTTES3', type: 'mini.export', data: { graph: { nodes: [{ id: 'a', label: 'Alpha' }, { id: 'b', label: 'Beta' }], edges: [] } } };
+  await fetch(`${u.origin}/lip/event?w=${w}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-lets-token': token }, body: JSON.stringify(exportEv) });
+  const handed = await call('listen', { wait_ms: 2000, types: ['mini.export'] });
+  const hx = handed.events.find((e) => e.t === 'mini.export');
+  assert(hx?.data?.session?.handoff === true && hx.data.session.id, `export marked as handoff (session ${hx?.data?.session?.id})`);
+  let closeMsg = '';
+  for (let i = 0; i < 5 && !closeMsg.includes('session.close'); i++) closeMsg += new TextDecoder().decode((await reader.read()).value);
+  assert(closeMsg.includes('session.close'), 'window received session.close');
+  const sessList = await call('sessions', { action: 'list', unique: 'mini' });
+  assert(sessList.length === 1 && /Alpha/.test(sessList[0].summary), `sessions list: ${sessList[0]?.summary}`);
+  const labeled = await call('sessions', { action: 'label', unique: 'mini', id: hx.data.session.id, label: 'alpha beta' });
+  assert(labeled.label === 'alpha beta', 'sessions label');
+  // resume: a new window gets the restore command (mini.load) queued before it attaches
+  const re = await call('open', { unique: 'mini', resume: 'last' });
+  assert(re.resumed?.id === hx.data.session.id && re.resumed.restore === 'mini.load', `open resume → ${JSON.stringify(re.resumed)}`);
+  assert(Array.isArray(re.sessions) && re.sessions[0]?.label === 'alpha beta', 'open lists sessions');
+  const w2 = new URLSearchParams(new URL(re.url).hash.slice(1)).get('w');
+  const ctl2 = new AbortController();
+  const sse2 = await fetch(`${u.origin}/lip/stream?w=${w2}&u=mini&t=${token}`, { signal: ctl2.signal });
+  const r2 = sse2.body.getReader();
+  let first2 = '';
+  for (let i = 0; i < 4 && !first2.includes('mini.load'); i++) first2 += new TextDecoder().decode((await r2.read()).value);
+  assert(first2.includes('mini.load') && first2.includes('Alpha'), 'resumed window receives mini.load with the saved payload on attach');
+  ctl2.abort();
+  await call('sessions', { action: 'remove', unique: 'mini', id: hx.data.session.id });
 
   // entity + plan + store (offline parts)
   const taught = await call('entity', { action: 'teach', name: 'smoke skill', triggers: ['smoke'], body: '## When\ntesting\n## Steps\n1. nothing' });

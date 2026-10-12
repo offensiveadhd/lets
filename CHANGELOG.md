@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.0 — 2026-10-12
+
+- **Send to Claude is a handoff.** A unique's *export* event (graph: "Send to
+  Claude") is saved as a **session** under `~/.lets/sessions/<unique>/`, the
+  event is marked `data.session = {id, handoff: true}` and the window receives
+  `session.close`: it says goodbye and closes, and Claude answers in the Claude
+  Code chat. `~/.lets/config.json` `"handoff": "stay"` keeps the old behaviour.
+- **Resume.** `open {resume: "last" | <id>}` opens a new window with the
+  unique's *restore* command queued first, so the board comes back as it was
+  sent; `open` lists the recent sessions. New `sessions` tool (list, get,
+  label, remove), `state {what:"sessions"}`, CLI `lets sessions`, `/lets graph
+  resume`, `/lets sessions`. Manifests declare the roles in a `session` block
+  (`export` / `snapshot` / `restore`; defaults `<domain>.export/.snapshot/.load`).
+- **Pip has expressions and secret moves** (shell): dizzy when you shake the
+  mouse, startled by a click storm, a gasp on Delete, a blush when you hover
+  it, a boop when you click it, a yawn before it dozes, a wave when you leave;
+  double-click, typing p-i-p, the Konami code, circling it, a boop streak,
+  dragging it and a night visit are secrets (`entity.secret`, counted in the
+  profile). `entity.react {name}` lets Claude and uniques play them;
+  `session.close` plays the farewell.
+- Prompt hook and channel messages explain a handoff and point at `resume`.
+- `lets doctor` no longer prints host tokens.
+- Docs: INSTALL.md (for an agent to run), the copy-paste install prompt,
+  CODE_OF_CONDUCT, SECURITY, issue forms, PR template, docs/COMMUNITY.md,
+  README rewrite; website at https://tikotiktok.github.io/lets-site/.
+
 ## 0.3.0 — 2026-10-10
 
 - **Uniques are separate repositories.** `graph` moved to

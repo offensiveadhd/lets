@@ -5,9 +5,20 @@ Tool names: `mcp__plugin_lets_lets__<name>` (plugin) / `mcp__lets__<name>` (dev)
 ## open
 ```json
 { "unique": "graph", "args": { "intent": "plan the auth flow" } }
+{ "unique": "graph", "resume": "last" }                        // bring back the newest board the human sent
+{ "unique": "graph", "resume": "s_01K7A2" }                    // a specific saved session (id or prefix)
 { "unique": "graph", "launch": "system", "windowId": "W1" }   // reopen in OS browser
 ```
-Returns `{ url, windowId, guide, summary, entity }`.
+Returns `{ url, windowId, guide, summary, entity, sessions:[{id, at, label, summary}], resumed?, handoff }`.
+
+## sessions (what "Send to Claude" saved)
+```json
+{ "action": "list", "unique": "graph" }
+{ "action": "get", "unique": "graph", "id": "last" }          // with the payload
+{ "action": "label", "unique": "graph", "id": "s_01K7A2", "label": "bounty harness architecture" }
+{ "action": "remove", "unique": "graph", "id": "s_01K7A2" }
+```
+The export event itself arrives as `graph.export { session: { id, handoff: true, saved: true, summary }, graph }`.
 
 ## listen
 ```json
@@ -22,9 +33,12 @@ Event shape: `{ id, t, from, ts, data }` (`t` = type, `from` = `graph#W1`).
   { "type": "graph.node.add", "data": { "id": "auth", "label": "Auth service", "kind": "step", "near": "api" } },
   { "type": "graph.edge.add", "data": { "from": "api", "to": "auth", "label": "JWT" } },
   { "type": "graph.highlight", "data": { "ids": ["auth"], "ttl": 4000 } },
-  { "type": "entity.say", "data": { "text": "Added **Auth service** next to the API — ok?", "mood": "curious" } }
+  { "type": "entity.say", "data": { "text": "Added **Auth service** next to the API — ok?", "mood": "curious" } },
+  { "type": "entity.react", "data": { "name": "wink" } }
 ]}
 ```
+Expressions for `entity.react`: `cheer wink nod shake-no sparkle dizzy whoa startled gasp oops blush boop yawn peek wave spin dance disco`.
+`{ "type": "session.close", "data": { "reason": "claude", "text": "Done here — back in the chat" } }` asks a window to say goodbye and close.
 
 ## say
 ```json

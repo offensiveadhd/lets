@@ -13,8 +13,11 @@
  *   lets.status  // 'connecting' | 'open' | 'closed'
  *
  * The window id and token come from the URL: `?w=<windowId>&t=<token>` or the
- * hash `#w=…&t=…` (the host opens windows with the hash form so the token never
- * reaches server logs). Both are read once and removed from the visible URL.
+ * hash `#w=…&t=…` (the host opens windows with the hash form, which browsers do
+ * not send to the server). Both are read once, kept in sessionStorage for the
+ * tab's lifetime (so reloads reconnect) and removed from the visible URL. The
+ * SSE stream has to carry the token as a query parameter (EventSource cannot
+ * set headers); the host redacts it from its logs.
  */
 
 const LIP = 1;

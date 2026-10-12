@@ -14,6 +14,7 @@ export const DIRS = {
   exports: path.join(HOME, 'exports'),
   uniques: path.join(HOME, 'uniques'),
   stores: path.join(HOME, 'stores'),
+  sessions: path.join(HOME, 'sessions'),
   entity: path.join(HOME, 'entity'),
   entitySkills: path.join(HOME, 'entity', 'skills'),
   router: path.join(HOME, 'router'),
