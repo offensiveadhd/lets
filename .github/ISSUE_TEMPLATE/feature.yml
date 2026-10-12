@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea for the engine, Pip, the SDK, the protocol or the install
+description: An idea for the engine, Doto, the SDK, the protocol or the install
 title: "[feature] "
 labels: ["enhancement"]
 body:
@@ -31,7 +31,7 @@ body:
       label: Which part?
       options:
         - Engine (host, bus, MCP tools, sessions)
-        - Pip, the companion (moods, expressions, learning)
+        - Doto, the companion (moods, expressions, learning)
         - SDK / shell (chat, components, theme)
         - Protocol (LIP)
         - Installer / INSTALL.md

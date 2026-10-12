@@ -143,7 +143,7 @@ export class Bus {
   /**
    * Whether Claude is blocked in `listen` right now (a waiter on the `claude`
    * cursor). Windows are told on every flip (`session.listening {on}`) so the
-   * shell can show "Pip is listening" vs "away", and `touchListening()` keeps
+   * shell can show "Doto is listening" vs "away", and `touchListening()` keeps
    * `on` true for a grace period after each listen call so a tight loop of
    * short polls still reads as attentive.
    */

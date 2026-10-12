@@ -12,7 +12,7 @@ Open issues with the forms (blank issues are off):
 - **Bug report**: asks for steps, what you expected, your OS and Claude Code
   version, and the output of `node engine/bin/lets.mjs doctor` (remove the
   `token` value before pasting).
-- **Feature request**: for the engine, Pip, the SDK, the protocol or the install.
+- **Feature request**: for the engine, Doto, the SDK, the protocol or the install.
 - **Propose a unique for the defaults**: only for a unique that is already
   verified in [lets-store](https://github.com/TikoTikTok/lets-store).
 

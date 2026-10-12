@@ -9,7 +9,7 @@ process.env.LETS_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'lets-test-'));
 const { validate } = await import('../engine/src/validate.mjs');
 const { Bus, matchType } = await import('../engine/src/bus.mjs');
 const { Router } = await import('../engine/src/router.mjs');
-const { Entity, slug } = await import('../engine/src/entity.mjs');
+const { Entity, slug, migratePersona } = await import('../engine/src/entity.mjs');
 const { inspectUnique } = await import('../engine/src/registry.mjs');
 const { imageSize } = await import('../engine/src/imagesize.mjs');
 const { Sessions, summarize } = await import('../engine/src/sessions.mjs');
@@ -63,7 +63,8 @@ test('router: tiers, waves, ledger bumps', () => {
 
 test('entity: persona persists, learns, teaches skills', () => {
   const e = new Entity();
-  assert.equal(typeof e.persona.name, 'string');
+  assert.equal(e.persona.name, 'Doto');
+  assert.equal(e.persona.tagline, 'a dot that does');
   e.learn({ text: 'likes tree layouts', likes: ['tree layout'], traits: { chatty: 0 } });
   const e2 = new Entity();
   assert.ok(e2.persona.likes.includes('tree layout'));
@@ -76,6 +77,21 @@ test('entity: persona persists, learns, teaches skills', () => {
   e2.absorbProfile({ pace: 1500, clickRate: 10, summons: 2, picks: 1 });
   assert.ok(e2.profile.pace > 0);
   assert.equal(slug('Hello World!'), 'hello-world');
+});
+
+test('entity: an untouched Pip persona becomes Doto; a renamed one is left alone', () => {
+  const pip = { name: 'Pip', tagline: 'small, bright, eager to help', traits: { chatty: 0.9 }, likes: ['tree layout'] };
+  assert.deepEqual(migratePersona(pip), { from: 'Pip', to: 'Doto' });
+  assert.equal(pip.name, 'Doto');
+  assert.equal(pip.tagline, 'a dot that does');
+  assert.equal(pip.traits.chatty, 0.9);
+  assert.deepEqual(pip.likes, ['tree layout']);
+  const nova = { name: 'Nova', tagline: 'small, bright, eager to help' };
+  assert.equal(migratePersona(nova), null);
+  assert.equal(nova.name, 'Nova');
+  const customPip = { name: 'Pip', tagline: 'my own words' };
+  assert.equal(migratePersona(customPip), null);
+  assert.equal(customPip.name, 'Pip');
 });
 
 test('registry: the fixture unique validates; escaping entry is rejected', () => {

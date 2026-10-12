@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.0 — 2026-10-13
+
+- **Pip is now Doto.** The companion's default name and character changed.
+  Doto is *a dot that does* (he/him): short lines, verb first, ending on a
+  dot; he does the next thing and then says what he did; he counts things and
+  talks less than he does. Default traits are now speed 0.6, distance 0.45,
+  chatty 0.4, playful 0.7, formality 0.15, curiosity 0.6, tagline "a dot that
+  does". A `persona.json` still named Pip with its default tagline is moved to
+  Doto when the engine starts (learned traits, likes and memory are kept and a
+  line in `memory.jsonl` says so); a persona the human renamed is left alone.
+  Reaction, event and command names are unchanged; the typed secret is now
+  d-o-t-o (or his current name) and the dance is "the dot bounce".
+- **Shell lines follow him**: greeting ("Hi, I'm Doto. Point at something and
+  let's do it."), the farewell ("Sent. See you in Claude Code ✦", bubble
+  "Bye."), the empty menu, the secret-found line; a boop gets a short line now
+  and then, and the five-boop secret says "Five dots. You're keeping count
+  too." The idle bob has a slight roll.
+- Docs: `docs/ENTITY.md` carries his character sheet and voice; the skill,
+  GUIDE, README, INSTALL, the native pane and the website say Doto.
+  `docs/RELEASING.md` is the release checklist.
+- The handoff was verified end-to-end in the desktop app browser pane with the
+  installed plugin (save, close, answer in chat, resume intact); screenshots
+  re-captured against this UI.
+
 ## 0.4.0 — 2026-10-12
 
 - **Send to Claude is a handoff.** A unique's *export* event (graph: "Send to

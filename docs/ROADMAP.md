@@ -5,6 +5,17 @@ before the repos go public, **P2** soon after, **P3** when someone wants it.
 Issues carry the `publish-readiness` label; the umbrella checklist is in the
 lets repo.
 
+## Shipped in 0.5.0 (2026-10-13)
+
+- Pip is now **Doto**, a dot that does: new default persona (name, tagline,
+  traits), his voice in the shell lines, the skill, GUIDE, README, INSTALL,
+  `docs/ENTITY.md` (character sheet) and the website; an untouched Pip
+  persona migrates on start.
+- The handoff verified end-to-end in the desktop app browser pane with the
+  installed plugin (lets #1).
+- Screenshots re-captured against the 0.5.0 UI (lets #9, graph #3).
+- Releases tagged in every repo and `docs/RELEASING.md` written (lets #11).
+
 ## Shipped in 0.4.0 (2026-10-12)
 
 - Send to Claude is a handoff: the board is saved as a session, the window
@@ -25,7 +36,6 @@ lets repo.
 
 | P | Issue | Labels |
 |---|---|---|
-| P1 | [Verify the handoff end-to-end in the desktop app browser pane](https://github.com/TikoTikTok/lets/issues/1) | sessions, tests |
 | P1 | [Public launch checklist (umbrella)](https://github.com/TikoTikTok/lets/issues/2) | publish-readiness, docs |
 | P2 | [Require the token for /uploads/ and randomize upload filenames](https://github.com/TikoTikTok/lets/issues/3) | security |
 | P2 | [Keep the token out of query strings and logs](https://github.com/TikoTikTok/lets/issues/4) | security |
@@ -33,9 +43,7 @@ lets repo.
 | P2 | [Gate store add_store behind confirm:true like install](https://github.com/TikoTikTok/lets/issues/6) | security |
 | P2 | [Tests for the security invariants](https://github.com/TikoTikTok/lets/issues/7) | tests, security |
 | P2 | [Public install path: zero-credential install on Windows, macOS and Linux](https://github.com/TikoTikTok/lets/issues/8) | docs, publish-readiness |
-| P2 | [Re-capture screenshots against the 0.4.0 UI (board, Pip expressions, farewell)](https://github.com/TikoTikTok/lets/issues/9) | docs, companion |
 | P2 | [CI: add macOS to the matrix and run claude plugin validate](https://github.com/TikoTikTok/lets/issues/10) | tests, publish-readiness |
-| P2 | [Tag releases (v0.4.0) in every repo and write the release checklist](https://github.com/TikoTikTok/lets/issues/11) | publish-readiness |
 | P2 | [Resume into the current window (merge) and draw proposals in on resume](https://github.com/TikoTikTok/lets/issues/12) | sessions |
 | P3 | [Cap host.uploads / host.opened history and add an uploads quota](https://github.com/TikoTikTok/lets/issues/13) | — |
 | P3 | [CI: assert lets-unique-graph/schemas/unique.schema.json matches protocol/schemas](https://github.com/TikoTikTok/lets/issues/14) | — |
@@ -54,7 +62,6 @@ lets repo.
 |---|---|---|
 | P2 | [Version-sync guard: package.json, unique.json and CHANGELOG must agree](https://github.com/TikoTikTok/lets-unique-graph/issues/1) | tests |
 | P2 | [More board-driven expressions (sparkle on a quick 5-node chain, gasp on node removal)](https://github.com/TikoTikTok/lets-unique-graph/issues/2) | companion |
-| P2 | [Re-capture the README screenshot with the 0.3.0 board and Pip](https://github.com/TikoTikTok/lets-unique-graph/issues/3) | docs |
 
 ### lets-unique-template
 

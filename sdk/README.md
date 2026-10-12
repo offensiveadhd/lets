@@ -16,7 +16,7 @@ import { Shell } from '/sdk/lets-shell.js';
 const lets = Lets.connect({ unique: 'graph', version: '0.1.0', caps: ['entity', 'chat', 'components', 'media.image'] });
 const shell = Shell.mount(lets, {
   root: document.body,                       // overlays mount here; right-click is intercepted here
-  entity: { name: 'Pip', visible: true },    // defaults; the host's entity.persona overrides them
+  entity: { name: 'Doto', visible: true },    // defaults; the host's entity.persona overrides them
   context: (info) => ({ selection: [] }),    // info = {reason:'summon'|'click'|'hotkey'|'api', x, y, target?}
   quickSuggestions: (ctx) => [{ id: 'layout', label: 'Auto-layout', hint: 'tree', run: () => layout() }],
   media: true,                               // paste + drop on document (default true)
@@ -66,7 +66,7 @@ Unknown types render as a note showing the props JSON. To add your own type, use
 
 ## Expressions & secret moves
 
-Reactions are short expressions (0.4–2.5 s by default) that never block input. `shell.entity.react(name, {ms?, force?})` and the down-command `entity.react {name, ms?, force?}` play one; `react()` returns `false` for an unknown name or while that reaction cools down (`force` skips the cooldown), and `entity.react` with an unknown name fails its `ack`. `ms` is clamped to 300–8000. One plays at a time: a new one replaces the current one, except the farewell `wave`. Called through the API on a hidden companion, a reaction pops it in first; the gesture triggers below only play while it is visible.
+Reactions are short expressions (0.4–2.5 s by default) that never block input. `shell.entity.react(name, {ms?, force?})` and the down-command `entity.react {name, ms?, force?}` play one; `react()` returns `false` for an unknown name or while that reaction cools down (`force` skips the cooldown), and `entity.react` with an unknown name fails its `ack`. `ms` is clamped to 300–8000. One plays at a time: a new one replaces the current one, except the farewell `wave`. Called through the API on a hidden companion, a reaction pops him in first; the gesture triggers below only play while it is visible.
 
 While one plays, the entity layer carries `data-react="<name>"` (a CSS hook for uniques and themes). The look is CSS on extra sprite parts that are hidden the rest of the time (spiral, X, closed and squinting eyes, a grin, a wavy mouth, little arms, a sweat drop, a heart, music notes, confetti, stars, party lights, a night cap). The motion is a WAAPI animation on the sprite's body. With `prefers-reduced-motion` nothing moves or spins: the face, cheeks and glow change for about a second instead.
 
@@ -81,16 +81,16 @@ While one plays, the entity layer carries `data-react="<name>"` (a CSS hook for 
 | `cheer` | `^ ^`, grin, arms up, two hops, confetti | API only (graph: Send pressed, many nodes added) | 4 s |
 | `blush` | glowing cheeks, looks away, tiny wiggle | the pointer rests on the companion for 1.5 s | 20 s |
 | `boop` | squish, a heart floats up | a quick click or tap on the companion (the menu still opens); 5 in a row, each within 1.5 s, is the boop streak (secret) | none |
-| `yawn` | eyes shut, wide "o", stretch | idle 25–40 s, before it dozes off at 45 s | 60 s |
-| `peek` | eyes dart and it leans toward the pointer | the pointer comes back after more than 10 s away (it left the window or the tab was hidden) | 15 s |
+| `yawn` | eyes shut, wide "o", stretch | idle 25–40 s, before he dozes off at 45 s | 60 s |
+| `peek` | eyes dart and he leans toward the pointer | the pointer comes back after more than 10 s away (it left the window or the tab was hidden) | 15 s |
 | `nod` / `shake-no` | up-down / left-right | API only | 1 s |
 | `wave` | `^ ^`, a raised hand, sway | the pointer leaves the window; the `session.close` farewell | 2 s |
 | `spin` | a full 360° roll | double-click the companion (secret) | 1 s |
-| `dance` | side-to-side groove, music notes | typing `pip` (or the companion's name) outside a text field (secret) | 10 s |
+| `dance` | side-to-side groove, music notes | typing `doto` (or the companion's name) outside a text field (secret) | 10 s |
 | `disco` | the dance with party lights, 4 s | the Konami code ↑↑↓↓←→←→BA (secret) | 30 s |
 | `sparkle` | star burst, little hop | API only (Claude's "proud", a burst of connections) | 4 s |
-| `nightcap` | wears a night cap while sleepy | it is sleepy between 00:00 and 05:00 local time (secret) | none |
-| `wheee` | squint, grin, bright trail | dragging the caught companion more than 60 px: it follows the pointer directly and lands on release (secret) | none |
+| `nightcap` | wears a night cap while sleepy | he is sleepy between 00:00 and 05:00 local time (secret) | none |
+| `wheee` | squint, grin, bright trail | dragging the caught companion more than 60 px: he follows the pointer directly and lands on release (secret) | none |
 
 The seven secrets are `spin`, `dance`, `disco`, `dizzy` (by circling), `nightcap`, `boop` (the streak) and `wheee`. The first time the human finds one in a window, the shell emits `entity.secret {name}` once, counts it in `entity.profile.secrets`, and the companion says so in a one-line bubble.
 

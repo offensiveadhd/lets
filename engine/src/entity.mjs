@@ -8,10 +8,10 @@ import path from 'node:path';
 import { DIRS, readJson, writeJson, appendJsonl } from './paths.mjs';
 
 const DEFAULT_PERSONA = {
-  name: 'Pip',
+  name: 'Doto',
   born: null,
-  tagline: 'small, bright, eager to help',
-  traits: { speed: 0.55, distance: 0.5, chatty: 0.5, playful: 0.65, formality: 0.2, curiosity: 0.8 },
+  tagline: 'a dot that does',
+  traits: { speed: 0.6, distance: 0.45, chatty: 0.4, playful: 0.7, formality: 0.15, curiosity: 0.6 },
   color: '#a66bff',
   mood: 'idle',
   version: 1,
@@ -20,6 +20,22 @@ const DEFAULT_PERSONA = {
   dislikes: [],
   nicknames: {},  // what the user calls things
 };
+
+/** Names and taglines of earlier default personas (the human never chose them). */
+const OLD_DEFAULTS = [{ name: 'Pip', tagline: 'small, bright, eager to help' }];
+
+/**
+ * A persona still carrying an earlier default name (and its default tagline, so the human never
+ * customised it) moves to the current default. Learned traits, likes and memory are kept.
+ * @returns {{from:string,to:string}|null}
+ */
+export function migratePersona(persona) {
+  const old = OLD_DEFAULTS.find((o) => o.name === persona.name && (persona.tagline === o.tagline || !persona.tagline));
+  if (!old) return null;
+  persona.name = DEFAULT_PERSONA.name;
+  persona.tagline = DEFAULT_PERSONA.tagline;
+  return { from: old.name, to: DEFAULT_PERSONA.name };
+}
 
 const DEFAULT_PROFILE = {
   pace: null, clickRate: null, dwell: null, regions: null, idleMs: null,
@@ -34,6 +50,8 @@ export class Entity {
     this.skillsDir = DIRS.entitySkills;
     fs.mkdirSync(this.skillsDir, { recursive: true });
     this.persona = { ...DEFAULT_PERSONA, ...(readJson(this.personaFile) || {}) };
+    this.migrated = migratePersona(this.persona);
+    if (this.migrated) appendJsonl(this.memoryFile, { ts: Date.now(), kind: 'note', text: `the companion's default name changed from ${this.migrated.from} to ${this.migrated.to}; the human can rename it with "entity rename"`, weight: 1 });
     if (!this.persona.born) this.persona.born = new Date().toISOString();
     this.profile = { ...DEFAULT_PROFILE, ...(readJson(this.profileFile) || {}) };
     this.persona.sessions = (this.persona.sessions || 0) + 1;
