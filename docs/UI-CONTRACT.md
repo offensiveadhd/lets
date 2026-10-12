@@ -49,7 +49,7 @@ import { Shell } from '/sdk/lets-shell.js';
 const lets = Lets.connect({ unique: 'graph', version: '0.1.0', caps: ['entity','chat','components','media.image','clipboard'] });
 const shell = Shell.mount(lets, {
   root: document.body,            // where overlays mount
-  entity: { name: 'Pip' },        // defaults; overridden by `entity.persona`
+  entity: { name: 'Doto' },        // defaults; overridden by `entity.persona`
   context: () => ({ ... }),       // called when the entity is summoned/clicked: unique-specific context
   quickSuggestions: (ctx) => [ {id, label, hint?} ],  // instant local suggestions on entity click
 });
@@ -121,7 +121,7 @@ Behaviour (all client-side, zero network traffic):
   one plays, `.lets-entity-layer` has `data-react="<name>"`. Motion is WAAPI
   on the sprite (transform/opacity only); under `prefers-reduced-motion` only
   the face, cheeks and glow change, for about a second.
-- **Secret moves**: `spin` (double-click), `dance` (type `pip` outside a text
+- **Secret moves**: `spin` (double-click), `dance` (type `doto` outside a text
   field), `disco` (Konami code), `dizzy` by circling the sprite twice in 3 s,
   `nightcap` (sleepy between 00:00 and 05:00 local), `boop` (five quick
   clicks in a row) and `wheee` (dragging the caught sprite). The first find

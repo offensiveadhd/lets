@@ -31,7 +31,7 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
           msg.data = { session: { id: rec.id, handoff: closing, saved: true, summary: rec.summary }, ...(msg.data || {}) };
           if (closing) {
             const w = String(msg.from).split('#')[1];
-            bus.send({ type: 'session.close', data: { reason: 'handoff', text: 'Sent to Claude ✦ see you in Claude Code', ms: 1400 }, from: 'host' }, w);
+            bus.send({ type: 'session.close', data: { reason: 'handoff', text: 'Sent. See you in Claude Code ✦', ms: 1400 }, from: 'host' }, w);
             log('sessions', `handoff ${rec.unique}#${w} -> session ${rec.id}; window told to close`);
           }
         } else if (rec) msg.data = { session: { id: rec.id, saved: true }, ...(msg.data || {}) };
@@ -39,7 +39,7 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
     }
     const ok = origPush(msg);
     if (ok && msg?.type === 'entity.profile') { try { entity.absorbProfile(msg.data || {}); } catch (err) { log('entity', String(err)); } }
-    if (ok && msg?.type === 'entity.secret' && msg.data?.name) { try { entity.learn({ kind: 'secret', text: `the human found Pip's secret move "${String(msg.data.name).slice(0, 24)}"` }); } catch (err) { log('entity', String(err)); } }
+    if (ok && msg?.type === 'entity.secret' && msg.data?.name) { try { entity.learn({ kind: 'secret', text: `the human found Doto's secret move "${String(msg.data.name).slice(0, 24)}"` }); } catch (err) { log('entity', String(err)); } }
     return ok;
   };
 

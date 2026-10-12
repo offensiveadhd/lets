@@ -6,7 +6,7 @@ This file is for the agent (Claude Code) that will install `lets` on the human's
 Install the `lets` plugin for Claude Code on this machine: clone https://github.com/TikoTikTok/lets (use `gh repo clone TikoTikTok/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```
 
-`lets` is a Claude Code plugin: an engine (a zero-dependency Node MCP server), a `/lets` skill, and a companion called Pip. Installing it needs no `npm install`, no build step and no admin rights. Everything it keeps lives under `~/.lets`.
+`lets` is a Claude Code plugin: an engine (a zero-dependency Node MCP server), a `/lets` skill, and a companion called Doto, a small dot that does. Installing it needs no `npm install`, no build step and no admin rights. Everything it keeps lives under `~/.lets`.
 
 ## Ground rules for you, the agent
 
@@ -95,9 +95,9 @@ followed by `node engine/bin/lets.mjs install-skill` and `node engine/bin/lets.m
 You cannot restart Claude Code for them. Tell them, in this order:
 
 1. Restart Claude Code (or run `/reload-plugins`) so the plugin, the MCP server and the `/lets` alias are loaded.
-2. Then run `/lets graph`. That opens the board and Pip greets them.
+2. Then run `/lets graph`. That opens the board and Doto rolls up to greet them.
 
-Mention that the repo is private for now, that their saved boards and Pip's memory live in `~/.lets`, and that `/lets graph resume` brings a saved board back.
+Mention that the repo is private for now, that their saved boards and Doto's memory live in `~/.lets`, and that `/lets graph resume` brings a saved board back.
 
 ## Verify
 
@@ -107,7 +107,7 @@ Run these after the human has restarted (or after `/reload-plugins`).
 |---|---|
 | `claude plugin list` | an entry for `lets@lets`, enabled |
 | `/lets:lets list` | the `graph` unique, with no problems listed |
-| `/lets graph` | the board opens in the app's browser pane (or the default browser, see Troubleshooting) and Pip says hello |
+| `/lets graph` | the board opens in the app's browser pane (or the default browser, see Troubleshooting) and Doto rolls up and says hello |
 | `node engine/bin/lets.mjs doctor` (in the clone) | JSON with your `node` version, the lets `root` and `home`, any running `hosts`, and `uniques` containing `"graph:ok"` |
 | `node engine/bin/lets.mjs validate` (in the clone) | `ok` for every known unique, exit code 0 |
 

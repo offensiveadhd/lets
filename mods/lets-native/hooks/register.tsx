@@ -12,7 +12,7 @@ import type { Register } from 'claude-code'
 import type { Feed, FeedEvent, HostInfo } from '../types'
 
 const PANE = 'lets'
-const EMPTY: Feed = { hosts: [], events: [], mood: 'idle', name: 'Pip', checkedAt: 0 }
+const EMPTY: Feed = { hosts: [], events: [], mood: 'idle', name: 'Doto', checkedAt: 0 }
 const feed = atom({ plugin: 'lets-native', key: 'feed' } as const, EMPTY)
 
 async function homeDir($: any): Promise<string> {

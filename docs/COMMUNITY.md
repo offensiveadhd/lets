@@ -8,7 +8,7 @@ Be kind to each other ([CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)). Report secu
 
 | Repo | What goes there |
 |---|---|
-| [lets](https://github.com/TikoTikTok/lets) | The engine, the Claude Code plugin and marketplace, the LIP protocol, the SDK and shell (Pip, chat, components), the installer, `defaults.json`. Bugs, feature ideas, protocol changes, default proposals. |
+| [lets](https://github.com/TikoTikTok/lets) | The engine, the Claude Code plugin and marketplace, the LIP protocol, the SDK and shell (Doto, chat, components), the installer, `defaults.json`. Bugs, feature ideas, protocol changes, default proposals. |
 | [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | The graph board, the first and (today) only default unique. Board bugs and ideas. |
 | [lets-unique-template](https://github.com/TikoTikTok/lets-unique-template) | The template repository for a new unique (`pulse`, a dial you talk through). Start here to build one. |
 | [lets-store](https://github.com/TikoTikTok/lets-store) | The community store: `index.json` of uniques by git URL, the validator, the contribution checklist. Pull requests for store entries. |
@@ -46,7 +46,7 @@ Today `defaults.json` has one entry, `graph`. Nothing else is promised or pendin
 - **Test on your machine.** CI runs Ubuntu and Windows on Node 20 and 22. macOS is not in CI, so reports from macOS are especially welcome. So are reports from other terminals, shells and Claude Code versions.
 - **Docs.** Fix what confused you. The install instructions ([INSTALL.md](../INSTALL.md)) and the authoring guide are the most-read pages.
 - **A unique for a new medium.** The protocol assumes mediums that do not exist yet: a timeline, a 3D scene, a voice ring, a haptic strip, an AR overlay. Think in acts, not widgets (`timeline.span.set`, not `mouse.drag`), and see [LIP.md](../protocol/LIP.md) section 9.
-- **Teach Pip a trick.** New reactions and expressions live in the shell (`sdk/lets-shell.js`); see [ENTITY.md](ENTITY.md) and [UI-CONTRACT.md](UI-CONTRACT.md). Keep them short, quiet and kind to people who prefer reduced motion.
+- **Teach Doto a trick.** New reactions and expressions live in the shell (`sdk/lets-shell.js`); see [ENTITY.md](ENTITY.md) and [UI-CONTRACT.md](UI-CONTRACT.md). Keep them short, quiet and kind to people who prefer reduced motion.
 - **Code.** Small pull requests with a test, please. The PR template has the checklist: zero dependencies, LIP stays additive, tests pass, docs updated, a CHANGELOG line.
 
 ## How decisions get made
