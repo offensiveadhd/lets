@@ -2,11 +2,13 @@
 // the graph unique, hits the HTTP host, posts a window event and reads it back
 // through `listen`. Usage: node tests/mcp-smoke.mjs
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const proc = spawn(process.execPath, [path.join(root, 'engine', 'bin', 'lets-mcp.mjs')], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, LETS_DEBUG: '', LETS_NO_DEFAULTS: '1', LETS_UNIQUES_DIRS: path.join(root, 'tests', 'fixtures', 'uniques') } });
+const proc = spawn(process.execPath, [path.join(root, 'engine', 'bin', 'lets-mcp.mjs')], { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, LETS_HOME: fs.mkdtempSync(path.join(os.tmpdir(), 'lets-smoke-')), LETS_DEBUG: '', LETS_NO_DEFAULTS: '1', LETS_UNIQUES_DIRS: path.join(root, 'tests', 'fixtures', 'uniques') } });
 proc.stderr.on('data', (d) => process.stderr.write('[srv] ' + d));
 let buf = '';
 const pending = new Map();
