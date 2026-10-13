@@ -4,3 +4,7 @@ node_modules/
 Thumbs.db
 .lets/
 *.tmp
+
+# laid beside a mod by Claude Code when it hot-reloads one from this checkout (plugin-authoring)
+mods/*/.claude-plugin/types/
+mods/*/tsconfig.json

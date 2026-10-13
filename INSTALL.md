@@ -77,7 +77,7 @@ Options (use only if the human asked for them or a step below says so):
 | Flag | Does |
 |---|---|
 | `--local` | take the marketplace from this checkout instead of GitHub. Use it when developing, or when the `claude` side cannot authenticate to GitHub. Default uniques are still cloned from GitHub. |
-| `--native` | also install the optional `lets-native` mod (`/lets` and a live `/lets-pane`; needs Claude Code 2.1.287+). It provides `/lets` itself, so the alias skill is skipped. |
+| `--native` | also install the optional `lets-native` mod: `/lets`, `/lets-pane`, and the native panes of uniques that have one (`/lets graph native`); needs Claude Code 2.1.287+. It provides `/lets` itself, so the alias skill is skipped. |
 | `--no-skill` | skip the personal `/lets` alias skill. |
 | `--uninstall` | remove everything the installer added (see Uninstall). |
 
@@ -134,7 +134,9 @@ If the human set `LETS_NO_DEFAULTS=1`, defaults are skipped on purpose; unset it
 
 **The browser pane does not open.** In the Claude desktop app the board opens in the built-in browser pane. If there is no pane or it refuses, ask `lets` to open the window with `launch: "system"` (the `open` tool option), which opens it in the OS default browser. Do not paste the window URL as the only answer: it carries a token that is a secret for this machine.
 
-**`/lets:lets` works but bare `/lets` does not.** The alias skill is missing. Run `node engine/bin/lets.mjs install-skill`, then restart Claude Code. (With `--native`, `/lets` comes from the `lets-native` mod instead.)
+**`/lets:lets` works but bare `/lets` does not.** The alias skill is missing. Run `node engine/bin/lets.mjs install-skill`, then restart Claude Code. (With `--native`, `/lets` comes from the `lets-native` mod instead, and that mod also draws the native panes.)
+
+**`/lets graph native` says no lets-native mod was seen.** The native pane is drawn by the optional `lets-native` mod, and no mod has polled this host yet. Install it with `/plugin install lets-native@lets` (or `node install.mjs --native` from the checkout), then restart Claude Code; it needs Claude Code 2.1.287+, and older versions ignore it. If the human does not want the mod, open the same unique in the browser instead with `/lets graph web`. A native window also does not outlive a Claude Code session: after a restart, open it again (`/lets graph native resume` brings back a board they sent to Claude).
 
 **`/lets` runs but there are no lets tools.** The MCP server is not loaded. Run `/reload-plugins` or restart, then check `claude plugin list`. From the checkout, `claude plugin validate .` checks the manifests.
 

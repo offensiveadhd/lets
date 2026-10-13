@@ -26,7 +26,10 @@ LIP additive, tests pass, docs updated, a CHANGELOG line.
 - **LIP is the API.** New behaviour is a new message type (additive, ignorable),
   never a new transport or a change to the envelope. Bump `lip` only for
   envelope-incompatible changes, which should be never.
-- **Uniques are static.** Nothing in `uniques/` runs server-side.
+- **Uniques are static.** Nothing in `uniques/` runs server-side, with one
+  exception: a native view (`native.entry`, [docs/NATIVE.md](docs/NATIVE.md))
+  runs in the host's `node:vm` context, and only when the manifest declares it.
+  Nothing else of a unique runs in the host.
 - **Tokens are the budget.** Anything that reaches Claude (events, briefs,
   guides) must be compact and semantic. Pointer moves stay in the browser.
 
@@ -36,6 +39,7 @@ LIP additive, tests pass, docs updated, a CHANGELOG line.
 npm test                         # unit
 node tests/mcp-smoke.mjs         # stdio ↔ host ↔ fake window
 node engine/bin/lets.mjs serve --open graph --verbose
+node engine/bin/lets.mjs native graph --port N   # a native window on that host, printed as text
 claude plugin validate .
 claude --plugin-dir . # then /lets:lets graph
 ```
