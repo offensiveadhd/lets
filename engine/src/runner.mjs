@@ -161,7 +161,9 @@ export class Runner {
     } else {
       const esm = ESM.test(code);
       file = lang === 'typescript' ? (esm ? 'main.mts' : 'main.ts') : (esm ? 'main.mjs' : 'main.cjs');
-      argv = [L.cmd, PERMISSION_FLAG, `--allow-fs-read=${job}`, `--allow-fs-read=${path.join(job, '*')}`, `--allow-fs-write=${job}`, `--allow-fs-write=${path.join(job, '*')}`];
+      // one prefix entry per flag: a directory with its trailing separator covers everything inside it on
+      // Node 20 through 24 (the "<dir>/*" form crashes Node 20 on Linux with an internal assertion)
+      argv = [L.cmd, PERMISSION_FLAG, `--allow-fs-read=${job}${path.sep}`, `--allow-fs-write=${job}${path.sep}`];
       if (lang === 'typescript') argv.push('--experimental-strip-types');
       if (DETECT_MODULE) argv.push('--experimental-detect-module');
       argv.push('--no-warnings', file);
