@@ -1,5 +1,79 @@
 # Changelog
 
+## 0.7.0 — 2026-10-13
+
+- **Native windows: a unique as a pane inside Claude Code.** A unique can now
+  open in two modes. `web` is the browser window it always had. `native` is a
+  pane in Claude Code's own sidebar: `/lets graph native` draws the board as an
+  SVG picture, a list of your nodes and the inputs for the acts, with Doto as a
+  line at the top (his words, his mood, his suggestions as buttons), the chat
+  under the view and Claude's runtime components as cards. The pane is drawn by
+  the optional **lets-native** mod (`/plugin install lets-native@lets`, or
+  `node install.mjs --native`; needs Claude Code 2.1.287+). A manifest opts in
+  with `native: {entry, title?, columns?, rows?}`; `entry` (the web page) is now
+  optional when `native` is there, so a unique implements one mode or both.
+  `/lets <unique> native …` and `/lets <unique> web …` pick the mode (the word
+  right after the name); a bare `/lets <unique>` opens the web window when the
+  unique has one, else the native one, and `"mode": "native"` in
+  `~/.lets/config.json` flips that for uniques that have both. Everything else
+  is the same: LIP events and commands, `listen`/`send`/`say`/`query`, the
+  prompt hook, sessions (Send to Claude is still a handoff: the pane shows the
+  farewell card and closes itself; `resume` brings it back) and the companion.
+  graph 0.4.0 is the first unique with a native view; den and cocode stay
+  web-only for now. A native window does not outlive the host (a new Claude
+  Code session drops it); saved sessions do. Spec: `docs/NATIVE.md`.
+- **The native runtime.** A native view is one script (`native.entry`, plain
+  JS) that the lets host runs in a `node:vm` context, calling
+  `lets.native({init, render, on, action, export, destroy})`. `render` returns a
+  tree of elements (Box, Text, Button, Input, Select, Svg, Markdown, Code, Link)
+  and the human's presses come back as actions. The context has no `require`,
+  `process`, timers, network or file system; handlers are synchronous and
+  atomic (one that throws, is stopped after 2 s, or leaves the state over
+  1 MB is rolled back); what a view emits per call is bounded (1000 items,
+  1 MB); an SVG source is checked before it reaches the pane (no script,
+  handlers, character references or external references). This is isolation
+  against mistakes, not a security boundary, so install native-capable
+  uniques only from authors you trust (`store inspect` marks `native: true`). The mod talks to the host over `GET /lip/native/sync`,
+  `POST /lip/native/action`, `POST /lip/native/close`, `POST /lip/native/open`
+  and `GET /lip/native/windows` (token-protected like every `/lip/*` route).
+  The `open` tool takes `mode: "web"|"native"`; a native result has no `url`
+  but `mode`, `windowId`, `title` and `native: {modSeen, howToOpen}` (`modSeen`
+  false means no lets-native mod has polled this host yet, so Claude tells you
+  to install it or falls back to web). The registry reports `modes` per unique
+  (`lets uniques`, `uniques {action:"list"}`, the `open` result), and
+  `session.opened` and `session.closed` carry `mode` (`native` for a pane; absent
+  means web). CLI: `lets native
+  <unique> [--port N]` opens a native window on a running host and prints its
+  pane as text, `lets native --w ID --act '{json}'` acts, and `lets serve --open
+  graph --mode native`. Manifest schema: `native`.
+- Fixes: `query` now arms its cursor before the send, so a reply that arrives
+  synchronously (a native view answers inside the send) is no longer missed; the
+  host avoids the WHATWG "bad ports" (6000, 6665-6669, 10080, …) that `fetch()`
+  and browsers refuse to connect to.
+- The lets-native mod is 0.2.0: the native panes, on top of the bare `/lets`
+  alias and `/lets-pane`.
+- **A local runner, so Run is instant.** A unique that declares
+  `permissions.exec` (cocode 0.2.0 does, for python, javascript and
+  typescript) can run the program it holds through the engine instead of
+  waiting for Claude: `GET /lip/run/info` says what this machine can run and
+  how each language is isolated, `POST /lip/run/consent` records the human's
+  one-time OK per unique and machine (`~/.lets/config.json` → `runner.allow`),
+  and `POST /lip/run` streams the output back as NDJSON in milliseconds. Every
+  run gets a fresh job folder under `~/.lets/run/jobs/` (deleted afterwards),
+  a scrubbed environment, a 30 s limit (up to 120 s), a 1 MB output cap and a
+  process-tree kill. Python runs with `-I -B` under an audit hook that blocks
+  files outside the folder, sockets, subprocesses, ctypes and winreg;
+  javascript and typescript run under Node's permission model (files confined
+  to the folder, no child processes or workers). The host emits
+  `session.consent` when the human decides. `"runner": {"enabled": false}`
+  switches it off. Spec: `docs/RUNNER.md`.
+- **A `run` MCP tool** for Claude: the same sandbox in one call, with the
+  output streamed to a window as a command (`emit`, e.g. `cocode.output`), so
+  a `cocode.run` no longer costs a file write and a shell call. The `lets`
+  skill tells Claude to use it.
+- CLI: `lets run <lang> <file|->` and `lets doctor` lists the runner's
+  languages. Manifest schema: `permissions.exec`.
+
 ## 0.6.0 — 2026-10-13
 
 - **A second default unique: den, Doto's home.** `/lets den` opens the page

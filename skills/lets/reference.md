@@ -8,8 +8,13 @@ Tool names: `mcp__plugin_lets_lets__<name>` (plugin) / `mcp__lets__<name>` (dev)
 { "unique": "graph", "resume": "last" }                        // bring back the newest board the human sent
 { "unique": "graph", "resume": "s_01K7A2" }                    // a specific saved session (id or prefix)
 { "unique": "graph", "launch": "system", "windowId": "W1" }   // reopen in OS browser
+{ "unique": "graph", "mode": "web", "args": { "intent": "…" } }      // the browser window, explicitly
+{ "unique": "graph", "mode": "native", "args": { "intent": "…" } }   // a pane inside Claude Code (lets-native mod)
+{ "unique": "graph", "mode": "native", "resume": "last" }            // bring the newest board back as a pane
 ```
-Returns `{ url, windowId, guide, summary, entity, sessions:[{id, at, label, summary}], resumed?, handoff }`.
+Returns `{ mode: "web", url, windowId, guide, summary, entity, sessions:[{id, at, label, summary}], modes, resumed?, handoff }`.
+`mode` defaults to `web` when the unique has a page, else `native` (`~/.lets/config.json` `"mode": "native"` flips it for uniques that have both). `modes` lists what the unique supports (`["web"]`, `["native"]` or both); asking for a mode it lacks returns an error with `modes`.
+A native result has no `url`: `{ mode: "native", windowId, unique, title, native: { modSeen, howToOpen }, guide, summary, entity, sessions, modes, resumed?, handoff }`. The pane opens in Claude Code by itself. `modSeen: false` means no lets-native mod has polled this host yet: tell the human to install it (`/plugin install lets-native@lets`, restart) or open the web window (`mode: "web"`) instead. `launch` applies to web only. `listen`, `send`, `say` and `query` work the same on a native window (its view answers inside the send). Spec: [docs/NATIVE.md](../../docs/NATIVE.md).
 
 ## sessions (what "Send to Claude" saved)
 ```json
@@ -99,6 +104,16 @@ Human acts → `component.action { id, action: "pick"|"change"|"submit"|"added"|
 { "action": "inspect", "name": "https://github.com/someone/lets-unique-foo.git", "path": "", "ref": "main" }
 { "action": "add_store", "name": "my-store", "repo": "https://github.com/me/my-lets-store.git" }
 ```
+
+## run (execute code in the sandbox, one call)
+```json
+{ "lang": "python", "code": "print(1)" }
+{ "lang": "python", "code": "print(1)", "to": "<windowId>", "run": "r_84_1", "emit": "cocode.output" }   // also streams every chunk to that window
+{ "lang": "javascript", "code": "console.log(2+2)", "stdin": "", "timeout_ms": 10000 }
+```
+Returns `{ exit, ms, timedOut, killed, sandbox, stdout, stderr, bytes }`: `killed` is `null`, `"timeout"` or `"output"`, `exit` is `null` when killed, `sandbox` names the isolation used (`audit-hook`, `node-permission`), `stdout` and `stderr` are the last 8 000 characters.
+With `emit` and `to`, each chunk arrives in that window as a command of that type with `{ run, stream, text, seq }`, and the last one carries `done: true, exit, ms` (the shape cocode's `cocode.output` expects).
+Languages: `python`, `javascript`, `typescript`; anything else goes through your own shell. No unique consent is needed here: Claude Code's permission prompt for the tool is the gate. The feature can be off (`"runner": {"enabled": false}`), and then the tool refuses. Details: [docs/RUNNER.md](../../docs/RUNNER.md).
 
 ## uniques
 ```json

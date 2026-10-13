@@ -23,14 +23,27 @@ export class Bus {
 
   // ---- windows ------------------------------------------------------------
 
-  window(id, unique) {
+  window(id, unique, mode = null) {
     let w = this.windows.get(id);
     if (!w) {
-      w = { id, unique, clients: new Set(), pending: [], lastSeen: Date.now(), ready: null, opened: Date.now() };
+      w = { id, unique, mode: mode || 'web', clients: new Set(), pending: [], lastSeen: Date.now(), ready: null, opened: Date.now() };
       this.windows.set(id, w);
     }
     if (unique && !w.unique) w.unique = unique;
+    if (mode) w.mode = mode;
     return w;
+  }
+
+  /** Removes a window record silently (one that never attached: a failed native open). No event. */
+  drop(id) { return this.windows.delete(id); }
+
+  /** Drops a window right away (a native pane closed): `session.closed` is pushed now, no grace period. */
+  forget(id) {
+    const w = this.windows.get(id);
+    if (!w) return false;
+    this.windows.delete(id);
+    this.push({ lip: LIP, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.closed', data: { windowId: id, unique: w.unique, mode: w.mode } });
+    return true;
   }
 
   attach(id, unique, res) {
@@ -53,7 +66,7 @@ export class Bus {
         const cur = this.windows.get(id);
         if (cur && cur.clients.size === 0 && Date.now() - cur.lastSeen > 25_000) {
           this.windows.delete(id);
-          this.push({ lip: LIP, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.closed', data: { windowId: id, unique: cur.unique } });
+          this.push({ lip: LIP, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.closed', data: { windowId: id, unique: cur.unique, mode: cur.mode || 'web' } });
         }
       }, 30_000).unref?.();
     }
@@ -61,7 +74,7 @@ export class Bus {
 
   windowList() {
     return [...this.windows.values()].map((w) => ({
-      id: w.id, unique: w.unique, connected: w.clients.size > 0, ready: !!w.ready,
+      id: w.id, unique: w.unique, mode: w.mode || 'web', connected: w.clients.size > 0, ready: !!w.ready,
       viewport: w.ready?.viewport, opened: w.opened, lastSeen: w.lastSeen, listening: this.listening,
     }));
   }
@@ -85,8 +98,9 @@ export class Bus {
       const wid = msg.from?.split('#')[1];
       if (wid) this.window(wid, msg.data?.unique).ready = msg.data;
     }
-    // coalesce chatty types: replace the previous undelivered one of the same type+from
-    if (COALESCE_TYPES.has(msg.type)) {
+    // coalesce chatty types: replace the previous undelivered one of the same type+from.
+    // A native window emits one graph.changed per command, each with its own diff, so its events are kept apart.
+    if (COALESCE_TYPES.has(msg.type) && this.windows.get(String(msg.from).split('#')[1])?.mode !== 'native') {
       // only entries no reader has seen yet may be replaced in place
       const delivered = Math.max(0, ...this.cursors.values());
       for (let i = this.ring.length - 1; i >= 0; i--) {
@@ -207,12 +221,15 @@ export class Bus {
     return w ? [w] : [];
   }
 
+  /** A client is an SSE response, or a native window (`{deliver(msg)}`) that takes the envelope directly. */
   _write(res, msg) {
+    if (typeof res?.deliver === 'function') { try { res.deliver(msg); } catch (err) { this.log('bus', `native deliver failed: ${err?.message || err}`); } return; }
     try { res.write(`data: ${JSON.stringify(msg)}\n\n`); } catch { /* closed */ }
   }
 
   heartbeat() {
     for (const w of this.windows.values()) for (const res of w.clients) {
+      if (typeof res?.deliver === 'function') continue;
       try { res.write(': hb\n\n'); } catch { /* closed */ }
     }
   }
