@@ -5,6 +5,17 @@ before the repos go public, **P2** soon after, **P3** when someone wants it.
 Issues carry the `publish-readiness` label; the umbrella checklist is in the
 lets repo.
 
+## In the store (2026-10-13)
+
+- **cocode** 0.1.0, talk in code
+  ([lets-unique-cocode](https://github.com/TikoTikTok/lets-unique-cocode),
+  `/lets store cocode`): an editor for any language, even one that does not
+  exist. Claude predicts the next lines as a ghost the human accepts with Tab,
+  prepares the real program in a Build pane so Run is instant, streams the
+  output, answers `??` lines inline, and reads *Send to Claude* as a question,
+  a task, a bug, a review or a note. Needs no engine change (lets >= 0.4.0);
+  a candidate for `defaults.json` once it has been used for a while.
+
 ## Shipped in 0.6.0 (2026-10-13)
 
 - **den**, Doto's home, is the second default unique
