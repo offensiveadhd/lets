@@ -4,14 +4,22 @@
  * the server is registered directly).
  */
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import { rid } from './ids.mjs';
 import { matchType } from './bus.mjs';
+import { DIRS, readJson } from './paths.mjs';
+
+/** `~/.lets/config.json` → `mode`: which window a unique with both opens by default ("web" unless "native"). */
+function preferredMode() {
+  const cfg = readJson(path.join(DIRS.home, 'config.json'), {});
+  return cfg?.mode === 'native' ? 'native' : 'web';
+}
 
 // Claude Code's MCP tool timeout is hours, but a call running past ~2 minutes may be moved to a
 // background task, so one listen stays under that: 100 s max, 90 s is what the skill uses.
 const MAX_WAIT = 100_000;
 
-export function buildTools({ host, entity, router, store, sessions = null, log, provision = async () => [] }) {
+export function buildTools({ host, entity, router, store, sessions = null, runner = null, log, provision = async () => [] }) {
   const bus = host.bus;
 
   // Up-events pass through here before the ring buffer:
@@ -53,20 +61,21 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
   const tools = [
     {
       name: 'open',
-      description: 'Open a unique (interactive window) and get its URL, guide, the companion brief and the recent saved sessions. resume:"last" (or a session id from the list) brings a board the human sent earlier back into the new window. Opens nothing by itself unless launch="system" (default browser); in the Claude desktop app open the URL with the built-in browser tools instead.',
+      description: 'Open a unique (interactive window) and get its URL, guide, the companion brief and the recent saved sessions. mode:"web" (default when the unique has a page) opens a browser window; mode:"native" opens a pane inside Claude Code drawn by the lets-native mod (no URL: the pane appears by itself). resume:"last" (or a session id from the list) brings a board the human sent earlier back into the new window. Opens nothing by itself unless launch="system" (default browser); in the Claude desktop app open the URL with the built-in browser tools instead.',
       inputSchema: {
         type: 'object',
         properties: {
           unique: { type: 'string', description: 'unique name, e.g. "graph"' },
-          args: { type: 'object', description: 'optional key/values passed to the window in the URL hash' },
-          launch: { type: 'string', enum: ['none', 'system'], description: 'none (default): just return the URL. system: open in the OS default browser.' },
+          mode: { type: 'string', enum: ['web', 'native'], description: 'web: a browser window (the URL comes back). native: a pane inside Claude Code (needs the lets-native mod). Default: web when the unique has a page, else native; ~/.lets/config.json "mode" sets the preference for uniques that have both.' },
+          args: { type: 'object', description: 'optional key/values passed to the window (web: in the URL hash; native: as ctx.args)' },
+          launch: { type: 'string', enum: ['none', 'system'], description: 'none (default): just return the URL. system: open in the OS default browser (web mode only).' },
           windowId: { type: 'string', description: 'reuse a window id (reconnect) instead of creating a new one' },
           brief: { type: 'boolean', description: 'include the companion/entity brief (default true)' },
           resume: { type: 'string', description: '"last" = the newest saved session of this unique (this project first), or a session id / id prefix: the window is rebuilt from what the human last sent to Claude' },
         },
         required: ['unique'],
       },
-      async handler({ unique, args = {}, launch = 'none', windowId, brief = true, resume = null }) {
+      async handler({ unique, mode = null, args = {}, launch = 'none', windowId, brief = true, resume = null }) {
         host.registry.refresh();
         let u = host.registry.get(unique);
         if (!u) {
@@ -78,29 +87,47 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
           if (!u) return { error: `unknown unique "${unique}"`, available: host.registry.list().map((x) => x.name), defaults: report, hint: mine?.status === 'failed' ? `default "${unique}" could not be installed: ${(mine.problems || []).join('; ')} (needs git and access to the repo)` : 'install it from the store or add it under ~/.lets/uniques' };
         }
         if (!u.ok) return { error: `unique "${unique}" is invalid`, problems: u.problems };
-        const { url, windowId: w } = host.windowUrl(unique, { windowId, args });
+        const modes = u.modes || ['web'];
+        const wanted = mode || (modes.includes('web') && modes.includes('native') ? preferredMode() : modes[0]);
+        if (!modes.includes(wanted)) return { error: `unique "${unique}" has no ${wanted} window`, modes, hint: wanted === 'native' ? 'this unique has no "native.entry" in its manifest (docs/NATIVE.md); open it with mode:"web"' : 'this unique has no web page; open it with mode:"native"' };
+        // a saved session, queued before the window attaches so it is the first thing the window handles
         let resumed = null;
-        if (resume && sessions) {
+        const queueRestore = (w) => {
+          if (!resume || !sessions) return;
           const rec = sessions.get(unique, resume);
-          if (!rec) resumed = { error: `no saved session "${resume}" for ${unique}` };
-          else {
-            const cmd = sessions.restoreCommand(rec);
-            // queued now, delivered the moment the window attaches (before anything else)
-            bus.send({ ...cmd, from: 'host' }, w);
-            sessions.byWindow.set(w, rec.id);
-            resumed = { id: rec.id, at: rec.at, label: rec.label, summary: rec.summary, restore: cmd.type };
-          }
-        }
-        if (launch === 'system') openSystem(url, log);
-        return {
-          url, windowId: w, unique, origin: host.origin,
-          howToOpen: launch === 'system' ? 'opened in the default browser' : 'Open this URL in the built-in browser pane (preview_start/navigate) or pass launch:"system".',
-          resumed,
+          if (!rec) { resumed = { error: `no saved session "${resume}" for ${unique}` }; return; }
+          const cmd = sessions.restoreCommand(rec);
+          bus.send({ ...cmd, from: 'host' }, w);
+          sessions.byWindow.set(w, rec.id);
+          resumed = { id: rec.id, at: rec.at, label: rec.label, summary: rec.summary, restore: cmd.type };
+        };
+        const common = () => ({
           sessions: sessions ? sessions.list({ unique, limit: 5 }).map((s) => ({ id: s.id, at: s.at, label: s.label, summary: s.summary, project: s.project })) : [],
           handoff: sessions ? sessions.handoff : 'stay',
+          modes,
           summary: host.registry.summary(unique),
           guide: host.registry.guideText(unique),
           entity: brief ? entity.brief() : undefined,
+        });
+        if (wanted === 'native') {
+          let opened;
+          try { opened = host.openNative(unique, { windowId, args, queue: queueRestore }); } catch (err) { return { error: `native window failed: ${err?.message || err}`, modes }; }
+          const seen = host.native.modSeen;
+          return {
+            mode: 'native', windowId: opened.windowId, unique, origin: host.origin, title: opened.title,
+            native: { modSeen: seen, howToOpen: seen ? 'The lets-native mod is running: the pane opens in Claude Code by itself (no URL, no browser).' : 'No lets-native mod has polled this host yet. The pane appears once the mod runs: install it with `/plugin install lets-native@lets` and restart Claude Code, or open the web window instead (mode:"web").' },
+            resumed,
+            ...common(),
+          };
+        }
+        const { url, windowId: w } = host.windowUrl(unique, { windowId, args });
+        queueRestore(w);
+        if (launch === 'system') openSystem(url, log);
+        return {
+          mode: 'web', url, windowId: w, unique, origin: host.origin,
+          howToOpen: launch === 'system' ? 'opened in the default browser' : 'Open this URL in the built-in browser pane (preview_start/navigate) or pass launch:"system".',
+          resumed,
+          ...common(),
         };
       },
     },
@@ -189,10 +216,11 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
       },
       async handler({ type, data = {}, reply, to, timeout_ms = 8000 }) {
         const replyType = reply || type;
-        const sent = bus.send({ type, data }, to);
-        if (!sent.delivered.length) return { error: 'no connected window', queued: sent.queued };
+        // the cursor is armed before the send: a native window answers synchronously, inside bus.send
         const cursor = `q_${rid('x')}`;
         bus.cursors.set(cursor, bus.seq);
+        const sent = bus.send({ type, data }, to);
+        if (!sent.delivered.length) { bus.cursors.delete(cursor); return { error: 'no connected window', queued: sent.queued }; }
         const deadline = Date.now() + Math.min(timeout_ms, MAX_WAIT);
         while (Date.now() < deadline) {
           await bus.wait(cursor, deadline - Date.now());
@@ -211,7 +239,7 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
       async handler({ what = 'all' }) {
         const parts = {
           windows: () => bus.windowList(),
-          host: () => ({ origin: host.origin, port: host.port, pid: process.pid, stats: bus.stats, cursors: Object.fromEntries(bus.cursors), runFile: host.runFile, handoff: sessions?.handoff }),
+          host: () => ({ origin: host.origin, port: host.port, pid: process.pid, stats: bus.stats, cursors: Object.fromEntries(bus.cursors), runFile: host.runFile, handoff: sessions?.handoff, native: { windows: host.native.list().length, modSeen: host.native.modSeen, modVersion: host.native.seenVersion } }),
           uploads: () => host.uploads,
           uniques: () => host.registry.refresh(),
           sessions: () => (sessions ? sessions.list({ limit: 10 }) : []),
@@ -335,6 +363,45 @@ export function buildTools({ host, entity, router, store, sessions = null, log, 
           case 'unlearn': return entity.unlearn({ likes: a.likes, dislikes: a.dislikes, nicknames: Array.isArray(a.nicknames) ? a.nicknames : Object.keys(a.nicknames || {}), memory: a.memory });
           case 'reset': { const persona = entity.reset(); bus.send({ type: 'entity.persona', data: entity.personaForShell() }); return { persona }; }
           default: return { error: 'unknown action' };
+        }
+      },
+    },
+    {
+      name: 'run',
+      description: 'Run a program on this machine in the engine\'s sandbox (python: audit hook; javascript/typescript: node permission model; 30 s and 1 MB limits, a temp job folder, no subprocesses) and get its output in ONE call. With to + emit, every output chunk is also sent to that window as a command of type emit ({run, stream, text, seq}, last one done:true with exit and ms), the shape cocode.output expects. Use it for a cocode.run event instead of writing files and using the shell.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          lang: { type: 'string', enum: ['python', 'javascript', 'typescript'] },
+          code: { type: 'string', description: 'the whole program' },
+          stdin: { type: 'string', description: 'text piped to the program (default empty)' },
+          timeout_ms: { type: 'integer', minimum: 1000, maximum: 120000, description: 'wall-clock limit (default 30000)' },
+          to: { type: 'string', description: 'window id to stream the output to (with emit)' },
+          emit: { type: 'string', description: 'command type for the streamed chunks, e.g. "cocode.output"' },
+          run: { type: 'string', description: 'run id echoed in every chunk (e.g. the id from cocode.run)' },
+        },
+        required: ['lang', 'code'],
+      },
+      async handler({ lang, code, stdin = '', timeout_ms, to, emit, run }) {
+        if (!runner) return { error: 'this engine has no runner' };
+        if (!runner.enabled) return { error: 'the runner is switched off in ~/.lets/config.json ("runner": {"enabled": false})' };
+        const id = String(run || rid('r')).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60) || rid('r');
+        const stream = !!(emit && /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,4}$/.test(emit));
+        let seq = 0;
+        const tails = { stdout: '', stderr: '' };
+        try {
+          const result = await runner.run({
+            lang, code, stdin, timeoutMs: timeout_ms, run: id,
+            onChunk: (c) => {
+              if (c.stream !== 'system') tails[c.stream] = (tails[c.stream] + c.text).slice(-8000);
+              if (stream) bus.send({ type: emit, data: { run: id, stream: c.stream, text: c.text, seq: ++seq } }, to);
+            },
+          });
+          if (stream) bus.send({ type: emit, data: { run: id, stream: 'stdout', text: '', seq: ++seq, done: true, exit: result.exit, ms: result.ms, timedOut: result.timedOut, killed: result.killed, sandbox: result.sandbox } }, to);
+          return { ...result, stdout: tails.stdout, stderr: tails.stderr };
+        } catch (err) {
+          if (stream) bus.send({ type: emit, data: { run: id, stream: 'stderr', text: `${err.message}\n`, seq: ++seq, done: true, exit: null } }, to);
+          return { error: err.code || 'error', message: err.message, run: id };
         }
       },
     },

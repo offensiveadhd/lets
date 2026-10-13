@@ -8,9 +8,16 @@ LIP is the contract between three parties:
 | **Host** (the `lets` engine, a local Node process) | routes, persists, protects |
 | **Window** (a *unique*: a web UI opened in a browser pane) | shows, listens, lets the human point |
 
+A Window may also be a **pane inside Claude Code** (a *native* window, since
+0.7.0): the same unique, drawn by the lets-native mod from a tree its native
+view produces. It has a window id and speaks the same envelopes (see
+[docs/NATIVE.md](../docs/NATIVE.md)).
+
 Everything that crosses a boundary is a **message envelope** (JSON). Uniques are
-static web apps that only ever speak LIP; the host never executes unique code
-server-side. That is what makes third-party uniques safe to install from git.
+static web apps that only ever speak LIP; the host never executes the code of a
+web unique server-side. That is what makes third-party uniques safe to install
+from git. The one opt-in exception is a native view, a script the host runs in a
+`node:vm` context (docs/NATIVE.md §8), which is for authors you trust.
 
 The protocol is designed for mediums that do not exist yet: a unique can be a
 graph board today, a 3D scene, a voice ring, a haptic strip or an AR overlay
@@ -81,12 +88,13 @@ events through the shell SDK, never by forging envelopes.
 ### 3.1b Session (lifecycle and handoff)
 | Type | Dir | Data |
 |---|---|---|
-| `session.opened` / `session.closed` | up (host) | `{windowId, unique}` — a window connected for the first time / went away for good |
+| `session.opened` / `session.closed` | up (host) | `{windowId, unique, mode?}` — a window connected for the first time / went away for good. `mode` is `"web"` or `"native"` (a pane inside Claude Code); a missing `mode` means `web` |
 | `session.focus` / `session.blur` | up | `{}` — the tab became visible / hidden |
 | `session.listening` | down (host) | `{on, at}` — whether Claude is blocked in `listen` right now (the shell shows "listening" vs "away") |
 | `session.close` | down | `{reason:"handoff"\|"idle"\|"claude", text?, ms?}` — the window should say goodbye and close itself. Sent by the **host** after an *export* event (see §6 `session`), or by Claude. |
 | `session.closing` | up (shell) | `{reason}` — the farewell started |
 | `session.stay` | up (shell) | `{}` — the human pressed *Keep working*: the window stays |
+| `session.consent` | up (host) | `{windowId, unique, runner: true\|false}` — the human allowed (or revoked) the runner for that unique on this machine (docs/RUNNER.md) |
 
 **Handoff.** A unique's manifest names which of its types are the *export*
 (the human pressed "Send to Claude"), the *snapshot* (reply to a state query)
@@ -148,6 +156,10 @@ Built-in component types every shell MUST provide: `note`, `options`, `slider`,
 | Host → Window | `GET /lip/stream?w=<windowId>` — Server-Sent Events, `data:` = envelope JSON. Heartbeat comment every 15 s. |
 | Window → Host (blobs) | `POST /lip/upload?w=&source=&component=` raw body, `content-type` = mime. Returns `{path,w?,h?,bytes,mime}`. |
 | Window → Host (state) | `GET /lip/persona` and `GET /lip/entity`. Header `x-lets-token`. Read-only host state a unique may fetch: the companion's persona, and the full companion state (persona with likes, dislikes and nicknames, profile, skills, recent memory lines, the secret names). |
+| Window → Host (runner info) | `GET /lip/run/info?w=<windowId>`. Header `x-lets-token`. Returns whether the runner is enabled, whether this window's unique is allowed on this machine, the languages the manifest declares in `permissions.exec`, which of them this machine can run and with which sandbox, and the limits. |
+| Window → Host (runner consent) | `POST /lip/run/consent?w=<windowId>` body `{"allow": true}`. Records (or, with `false`, revokes) the human's consent for the window's unique on this machine. Returns `{"allowed": true}`. |
+| Window → Host (run) | `POST /lip/run?w=<windowId>` body `{lang, code, stdin?, timeoutMs?, run?}`. Streams the run as NDJSON (`application/x-ndjson`): one object per line with `stream` = `system`, `stdout` or `stderr`, then a last line with `done:true, exit, ms, timedOut, killed, sandbox`. Failures before the process starts are plain JSON with a 4xx status (`consent`, `disabled`, `not-declared`, `unavailable`, `busy`, `bad-request`). See [docs/RUNNER.md](../docs/RUNNER.md). |
+| Mod ↔ Host (native windows) | The lets-native mod (Claude Code) draws native windows and never runs unique code. All routes need the host token, like every `/lip/*` route. `GET /lip/native/sync?known=<w>:<rev>,…&cols=&rows=` returns `{windows:[{id, unique, title, rev, closed?, tree?}], listening}`, with `tree` only where `rev` moved past `known`. `POST /lip/native/action?w=` with `{key, kind, value?}` is a press, an Enter or a pick; it returns `{ok, rev, tree, error?}`. `POST /lip/native/close?w=` with `{reason}` says the person closed the pane. `POST /lip/native/open` with `{unique, args?, windowId?}` opens a native window and returns `{windowId}`. `GET /lip/native/windows` lists the native windows. See [docs/NATIVE.md](../docs/NATIVE.md) §6. |
 | Claude ↔ Host | MCP (stdio). `listen` long-polls the up-queue; `send` enqueues down-commands. |
 | Hooks → Host | `GET /lip/drain?cursor=<name>` returns & advances a named cursor — used by the `UserPromptSubmit` hook so events reach Claude without a tool call. |
 
@@ -155,6 +167,8 @@ Security: loopback only; a per-host random token is required on every request
 (query `t`, header, or the window's URL fragment at open); CSP on served pages
 `default-src 'self'`; uploads are size-capped (default 25 MB) and written only
 under the uploads dir; manifests are schema-validated before a unique is served.
+The runner (`/lip/run`) only runs after the human allowed that unique on that
+machine.
 
 ## 5. Queues & cursors
 
@@ -175,13 +189,14 @@ within 400 ms collapse to the latest.
   "title": "Graph — talk in diagrams",
   "description": "Draw flows and ideas; the companion and Claude read them.",
   "entry": "ui/index.html",
+  "native": { "entry": "native/index.js" },
   "guide": "GUIDE.md",
   "icon": "icon.svg",
   "domains": ["graph"],
   "capabilities": ["entity", "chat", "components", "media.image", "clipboard"],
   "events": { "graph.node.select": { "summary": "User selected nodes", "schema": "schemas/node.select.json" } },
   "commands": { "graph.node.add": { "summary": "Add a node", "schema": "schemas/node.add.json" } },
-  "permissions": { "fs.write": ["uploads"], "net": [] },
+  "permissions": { "fs.write": ["uploads"], "net": [], "exec": [] },
   "session": { "export": "graph.export", "snapshot": "graph.snapshot", "restore": "graph.load" },
   "author": { "name": "…", "url": "…" },
   "license": "MIT",
@@ -197,6 +212,8 @@ Rules the host enforces:
 5. Unknown top-level keys are kept (forward compatibility) but ignored.
 6. `lip` major must match the host's.
 7. `session` (optional) names the export / snapshot / restore types for handoff (§3.1b); each must start with one of the unique's domains. Without it the host assumes `<domain>.export`, `<domain>.snapshot`, `<domain>.load`.
+8. `permissions.exec` (optional) lists the languages the unique may ask the host to run, for example `["python", "javascript"]`. The host refuses `/lip/run` for any other language, and for a unique without `exec`.
+9. `native` (optional) declares the native window: `native.entry` resolves inside the unique folder and ends in `.js` or `.mjs`, and at least one of `entry` and `native` must be present (a unique opens in the web, in a pane, or both). `native.title`, `native.columns` and `native.rows` are display hints. The host runs `native.entry` only when the manifest declares it (docs/NATIVE.md).
 
 ## 7. Guide (`GUIDE.md`)
 

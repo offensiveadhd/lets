@@ -15,10 +15,11 @@ my-unique/
   ui/index.html      entry (declared in the manifest)
   ui/app.js
   ui/style.css
+  native/index.js    native view (optional, 0.7.0; see §3b)
 ```
 
-Rules: `name` is lowercase kebab (`^[a-z][a-z0-9-]{1,31}$`); `entry`, `guide`,
-`icon` stay inside the folder; your `domains` are yours (`lip`, `session`,
+Rules: `name` is lowercase kebab (`^[a-z][a-z0-9-]{1,31}$`); `entry`, `native.entry`,
+`guide`, `icon` stay inside the folder; your `domains` are yours (`lip`, `session`,
 `entity`, `chat`, `component`, `media`, `ui` are reserved); every event and
 command you declare starts with one of your domains. Validate with
 `node engine/bin/lets.mjs validate ./my-unique`.
@@ -29,6 +30,12 @@ See [protocol/LIP.md §6](../protocol/LIP.md). Keep `summary` lines short — th
 are shown to Claude on `open`. Declare `capabilities` honestly (the shell only
 enables paste/upload when `media.image` or `clipboard` is listed) and
 `permissions` (`fs.write: ["uploads"]` is the only write a unique can ask for).
+`permissions.exec` lists the languages the unique may ask the engine to run
+(`["python", "javascript", "typescript"]`, for example). A unique without it
+cannot use `/lip/run`; see §3 and [RUNNER.md](RUNNER.md).
+`native` (optional, 0.7.0) declares a native view; at least one of `entry` and
+`native` is required, so a unique opens in the browser, in a Claude Code pane,
+or both. See §3b.
 
 ## 3. UI
 
@@ -60,6 +67,64 @@ is one call away: `await lets.get('/lip/persona')` or `await lets.get('/lip/enti
 
 Theme: use the CSS variables in `/sdk/lets-shell.css` (`--lets-bg`,
 `--lets-accent`, …) so your unique matches the companion.
+
+Running code (0.7.0). A unique that holds a program can run it on the human's
+machine without a round trip through Claude. Declare the languages in
+`permissions.exec`. When the human presses Run, call
+`await lets.get('/lip/run/info?w=' + lets.windowId)`: it says whether the runner
+is `enabled`, whether the human `allowed` your unique, and which `languages` this
+machine can run and with which `sandbox`. If `allowed` is false, show what will
+happen and a button, and `POST /lip/run/consent?w=…` with `{"allow": true}` when
+the human presses it (a run without consent answers `403 {error:"consent"}`).
+Then `POST /lip/run?w=…` with `{lang, code, stdin?, timeoutMs?, run?}`, using
+`fetch` with the same `x-lets-token` header, and read the response as an NDJSON
+stream: one JSON object per line (`stream` is `system`, `stdout` or `stderr`),
+ended by a line with `done:true, exit, ms, timedOut, killed, sandbox`. Show the
+sandbox level next to the Run button. The contract is in [RUNNER.md](RUNNER.md),
+and **cocode** is the unique to read for a working example.
+
+## 3b. Native mode (optional)
+
+Since 0.7.0 a unique can also open as a pane inside Claude Code, drawn by the
+optional lets-native mod. It is a second interface to the same medium: the
+same events, the same commands, the same guide. Declare it in the manifest:
+
+```jsonc
+"native": { "entry": "native/index.js", "title": "graph", "columns": 56, "rows": 40 }
+```
+
+`entry` (the web page) becomes optional once `native` is there. The registry
+reports the `modes` a unique supports (`web`, `native` or both), and `/lets
+<unique>` opens the web window when there is one, else the native one;
+`/lets <unique> native` and `/lets <unique> web` choose.
+
+The view is **one plain script** (not an ES module) that the lets host runs in a
+`node:vm` context. It calls `lets.native({init, render, on, action, export,
+destroy})` once: `render(state, ui, ctx)` returns a tree of `Box`, `Text`,
+`Button`, `Input`, `Select`, `Svg`, `Markdown`, `Code` and `Link`; `on` has one
+handler per command from Claude; `action(state, act, ctx)` gets what the human
+pressed, entered or picked and emits your events with `ctx.emit`. Handle the
+restore command from your `session` block, and emit events with the same shapes
+as the web view, so one `GUIDE.md` covers both modes (say in it what differs: no
+pointer, what the controls are). The companion line, chat, components, toasts,
+Send to Claude and the farewell card are drawn for you by the native shell, as
+the browser shell does for a web unique. Keep trees small: a list of the human's
+things with a button each, inputs for the acts, one SVG for the picture.
+
+To try it, run a host (`lets serve --open my-unique --mode native`), then
+`lets native my-unique --port N` opens a native window and prints its pane as
+text, and `lets native --w ID --act '{"key":"add","kind":"submit","value":"x"}'`
+presses a control. `tests/native.test.mjs` shows how to drive a view headlessly.
+The full contract (the context API, the trees, the actions, the transport, the
+limits) is [NATIVE.md](NATIVE.md).
+
+Trust. A native view runs in the host process, not in a browser: its context has
+no `require`, `process`, timers, network or file system, and a handler is stopped
+after 2 s, but `node:vm` is isolation against mistakes and not a security
+boundary. People should install a unique with a native view only from an author
+they trust; the store's `inspect` marks `native: true` so they see it first.
+Ask for nothing the view does not need, and keep the script plain enough to
+read in one sitting. A unique with only a web `entry` runs nothing in the host.
 
 ## 4. Guide
 

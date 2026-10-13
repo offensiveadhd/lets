@@ -34,9 +34,17 @@ export function inspectUnique(dir) {
   const entry = manifest.entry ? path.resolve(dir, manifest.entry) : null;
   if (entry && !isInside(dir, entry)) problems.push('entry escapes the unique folder');
   if (entry && !fs.existsSync(entry)) problems.push(`entry not found: ${manifest.entry}`);
+  // native mode (docs/NATIVE.md): one script inside the folder, run by the host in a vm context
+  const native = manifest.native && typeof manifest.native === 'object' ? manifest.native : null;
+  const nativeEntry = native?.entry ? path.resolve(dir, String(native.entry)) : null;
+  if (native && !nativeEntry) problems.push('native.entry missing');
+  if (nativeEntry && !isInside(dir, nativeEntry)) problems.push('native.entry escapes the unique folder');
+  if (nativeEntry && !fs.existsSync(nativeEntry)) problems.push(`native.entry not found: ${native.entry}`);
+  if (!entry && !nativeEntry) problems.push('a unique needs an "entry" (web) or a "native.entry" (native), or both');
+  const modes = [...(entry ? ['web'] : []), ...(nativeEntry ? ['native'] : [])];
   const guide = manifest.guide ? path.resolve(dir, manifest.guide) : null;
   if (guide && !isInside(dir, guide)) problems.push('guide escapes the unique folder');
-  return { ok: problems.length === 0, dir, manifest, problems, entry, guide };
+  return { ok: problems.length === 0, dir, manifest, problems, entry, nativeEntry, modes, guide };
 }
 
 export class Registry {
@@ -76,9 +84,13 @@ export class Registry {
     return [...this.uniques.values()].map((u) => ({
       name: u.name, ok: u.ok, source: u.source, dir: u.dir,
       title: u.manifest?.title, version: u.manifest?.version, description: u.manifest?.description,
+      modes: u.modes || [],
       domains: u.manifest?.domains, capabilities: u.manifest?.capabilities, problems: u.problems,
     }));
   }
+
+  /** The modes a unique can open in: `web` (a browser window), `native` (a pane in Claude Code). */
+  modes(name) { return this.get(name)?.modes || []; }
 
   get(name) { return this.uniques.get(name) || null; }
 
@@ -94,7 +106,7 @@ export class Registry {
     const m = u.manifest;
     const ev = Object.entries(m.events || {}).map(([t, d]) => `${t} — ${d.summary}`);
     const cm = Object.entries(m.commands || {}).map(([t, d]) => `${t} — ${d.summary}`);
-    return { name: m.name, title: m.title, version: m.version, description: m.description, domains: m.domains, capabilities: m.capabilities, events: ev, commands: cm, permissions: m.permissions || {}, session: m.session || null };
+    return { name: m.name, title: m.title, version: m.version, description: m.description, modes: u.modes || [], native: m.native ? { title: m.native.title || m.title, columns: m.native.columns, rows: m.native.rows } : null, domains: m.domains, capabilities: m.capabilities, events: ev, commands: cm, permissions: m.permissions || {}, session: m.session || null };
   }
 }
 

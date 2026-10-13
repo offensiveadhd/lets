@@ -14,7 +14,7 @@
 - [ ] **Docs are updated** where they apply: `README.md`, `docs/`, `protocol/LIP.md`, `sdk/README.md`, and for tools or commands `skills/lets/SKILL.md` (`allowed-tools`) and `skills/lets/reference.md`.
 - [ ] **CHANGELOG line** added for the upcoming version in `CHANGELOG.md`.
 - [ ] **Tokens stay the budget**: anything that reaches Claude (events, briefs, guides) is compact and semantic; pointer moves stay in the browser.
-- [ ] **Security surface unchanged**: loopback only, per-host token, CSP `default-src 'self'`, capped and confined uploads, uniques never executed server-side. If this PR touches any of them, say how below.
+- [ ] **Security surface unchanged**: loopback only, per-host token, CSP `default-src 'self'`, capped and confined uploads, web uniques never executed server-side; native views only in the vm context of `docs/NATIVE.md`. If this PR touches any of them, say how below.
 
 ## Notes for the reviewer
 
