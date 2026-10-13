@@ -106,7 +106,11 @@ async function sync($: EngineInterface): Promise<void> {
       else if (!st.windows[w.id]) opened.push(w)
     }
     await update($, native, (s) => ({ ...s, windows: next }))
-    for (const w of opened) await $.ui.open({ id: w.pane, title: w.title, columns: w.columns, rows: w.rows, focus: true })
+    for (const w of opened) {
+      // an open the mod makes on its own (a poll) may wait undrawn below the surface's width floor; one the person asks for is placed
+      const placed = await $.ui.open({ id: w.pane, title: w.title, columns: w.columns, rows: w.rows, focus: true })
+      if (!placed.isPlaced) $.ui.toast(`lets: the "${w.title}" pane is waiting (${placed.reason}); run /lets-native show to place it`, { timeoutMs: 8000 })
+    }
     for (const w of closed) { viewports.delete(w.pane); await $.ui.close({ id: w.pane }) }
   } finally {
     busy = false
@@ -200,7 +204,7 @@ export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'lets', description: 'Open a lets unique (e.g. /lets graph, /lets graph native) — alias for /lets:lets' })
     await $.command.register({ name: 'lets-pane', description: 'Show the lets pane: windows, companion mood, latest window events' })
-    await $.command.register({ name: 'lets-native', description: 'List the lets native windows shown in this session; "sync" polls the hosts now' })
+    await $.command.register({ name: 'lets-native', description: 'List the lets native windows of this session; "show" places their panes (a pane opened by a poll may wait undrawn); "sync" polls the hosts now' })
     const started = await next(e)
     // panes a reload left behind: the engine keeps them, the module's state says which windows they show
     try {
@@ -259,11 +263,24 @@ export const register: Register = (on) => {
   })
 
   on('command.run', { command: 'lets-native' }, async ($, e) => {
-    if (/\bsync\b/.test(e.args || '')) await sync($)
+    const args = e.args || ''
+    if (/\bsync\b/.test(args) || /\bshow\b/.test(args)) await sync($)
     const st = await read($, native)
     const list = Object.values(st.windows)
-    const lines = list.map((w) => `${w.pane}: ${w.unique} "${w.title}" on :${w.port}, rev ${w.rev}${w.tree ? '' : ' (no tree yet)'}`)
-    return { text: list.length ? `${list.length} native window(s):\n${lines.join('\n')}` : 'No lets native window is open. /lets graph native opens one (lets 0.7.0+).' }
+    const placed: string[] = []
+    if (/\bshow\b/.test(args)) {
+      // the person asked: these opens are placed at any width, and the first one takes the keyboard
+      for (const [i, w] of list.entries()) { const r = await $.ui.open({ id: w.pane, title: w.title, columns: w.columns, rows: w.rows, ...(i === 0 ? { focus: true as const } : {}) }); if (r.isPlaced) placed.push(w.pane) }
+    }
+    let panes: readonly { id: string; isPlaced: boolean; isShown: boolean }[] = []
+    try { panes = await $.ui.panes() } catch { /* none */ }
+    const lines = list.map((w) => {
+      const p = panes.find((x) => x.id === w.pane)
+      const where = !p ? 'no pane' : !p.isPlaced ? 'pane waiting (run /lets-native show)' : p.isShown ? 'shown' : 'a tab'
+      return `${w.pane}: ${w.unique} "${w.title}" on :${w.port}, rev ${w.rev}${w.tree ? '' : ', no tree yet'}; ${where}`
+    })
+    const head = list.length ? `${list.length} native window(s)${placed.length ? `, ${placed.length} pane(s) placed` : ''}:` : 'No lets native window is open. /lets graph native opens one (lets 0.7.0+).'
+    return { text: list.length ? `${head}\n${lines.join('\n')}` : head }
   })
 
   // the person closed a native pane: the host drops the window; closed by this mod: the host already knows

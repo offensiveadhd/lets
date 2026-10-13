@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- lets-native 0.2.1: a native pane the mod opens from a poll can wait undrawn
+  (Claude Code places an unasked pane only when the window is wide enough);
+  the mod now toasts when that happens and `/lets-native show` places every
+  native pane. `/lets-native` also says where each pane stands (shown, a tab,
+  waiting, none).
+
 ## 0.7.0 — 2026-10-13
 
 - **Native windows: a unique as a pane inside Claude Code.** A unique can now

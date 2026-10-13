@@ -9,7 +9,7 @@ can also open as a **pane in Claude Code's own sidebar**.
 |---|---|
 | `/lets <args>` | bare alias → runs the `lets:lets` skill with the same args (`/lets graph`, `/lets graph native`) |
 | `/lets-pane` | opens a live pane: running hosts, open windows, the companion's name + mood, the latest window events |
-| `/lets-native [sync]` | lists the native windows this session shows; `sync` polls the hosts now |
+| `/lets-native [show\|sync]` | lists the native windows this session shows and where each pane stands; `show` places their panes (a pane the mod opened from a poll may wait undrawn until the person asks for it or the window is wide enough; the mod toasts when that happens); `sync` polls the hosts now |
 | *(no command)* | **native panes**: every native window a lets host holds gets a pane here, drawn from the tree the host renders (docs/NATIVE.md) |
 
 ## Native panes
