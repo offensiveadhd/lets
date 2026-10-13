@@ -11,9 +11,9 @@ program: sockets and every network client in the standard library,
 subprocesses in all their forms (subprocess, os.system/exec*/spawn*/fork,
 posix_spawn, pty, _winapi.CreateProcess), ctypes, winreg, dll loading,
 sqlite extensions, and the import of ctypes, multiprocessing, pty and
-webbrowser (modules compiled into the interpreter, such as socket,
-subprocess, winreg or _winapi, raise no import event: they can be imported,
-every use of them is blocked).
+webbrowser, as an ImportError (modules compiled into the interpreter, such
+as socket, subprocess, winreg or _winapi, raise no import event: they can be
+imported, every use of them is blocked).
 
 What it does not do: a program may still add its own *observer* audit hooks
 (CPython never lets a hook block sys.addaudithook), but it cannot remove or
@@ -29,7 +29,9 @@ DEVNULL = {os.devnull, os.devnull.lower(), "nul", "/dev/null", "/dev/urandom", "
 READ_MODES = set("rbtU")
 WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_TRUNC
 
-BLOCKED_IMPORTS = {"ctypes", "_ctypes", "multiprocessing", "_multiprocessing", "winreg", "_winreg", "pty", "webbrowser", "_winapi", "_overlapped", "_posixsubprocess"}
+# only modules the standard library never needs on the happy path; modules compiled into the interpreter
+# (socket, subprocess, winreg, _winapi, _posixsubprocess) raise no import event anyway, their use is denied below
+BLOCKED_IMPORTS = {"ctypes", "_ctypes", "multiprocessing", "_multiprocessing", "pty", "webbrowser"}
 
 # events that are always fine: the interpreter's own machinery, introspection, in-process data
 ALLOW = {
@@ -117,7 +119,8 @@ def _hook(event, args):
     if event == "import":
         name = args[0] if args else ""
         if isinstance(name, str) and (name in BLOCKED_IMPORTS or name.split(".")[0] in BLOCKED_IMPORTS):
-            _deny(event + " " + name)
+            # an ImportError, so a standard-library "try: import ctypes / except ImportError" keeps working
+            raise ImportError("blocked by the lets sandbox: import " + name)
         return
     spec = PATH_EVENTS.get(event)
     if spec is not None:
