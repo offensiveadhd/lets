@@ -25,6 +25,7 @@ const PREFIX = 'lets-w-'
 const POLL_MS = 1200
 const IDLE_EVERY = 3                 // with no native window open, sync every third tick (~3.6 s)
 const FEED_EVERY = 4                 // the /lets-pane feed refreshes every fourth tick (~4.8 s)
+const ALIAS_MS = 50                  // /lets starts the skill this long after its own answer (the engine refuses it from the hook itself)
 const EMPTY: Feed = { hosts: [], events: [], mood: 'idle', name: 'Doto', checkedAt: 0 }
 const NONE: NativeState = { windows: {}, mine: [] }
 const feed = atom({ plugin: 'lets-native', key: 'feed' } as const, EMPTY)
@@ -173,6 +174,21 @@ function draw(table: Table, surface: string, node: Tree, on: (key: string, kind:
   }
 }
 
+/**
+ * Starts `/lets:lets <args>`, the lets plugin's own command, as if the person had typed it. Where the engine
+ * will not queue a command from here, the skill goes in as a prompt of theirs (the model then invokes it);
+ * failing both, a toast says so. Called from a clock tick, never from the `/lets` hook itself: from there the
+ * engine refuses both calls, since they would wait on the turn that hook is holding.
+ */
+async function startSkill($: EngineInterface, args: string, skill: string): Promise<void> {
+  let why: string
+  try { await $.command.run({ command: 'lets:lets', args }); return } catch (err) { why = String((err as Error)?.message || err) }
+  let installed = true
+  try { installed = (await $.command.list()).some((c) => c.name === 'lets:lets') } catch { /* the list is a courtesy */ }
+  if (!installed) { $.ui.toast('lets: the lets plugin is not installed here (no /lets:lets). /plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets, and restart Claude Code.', { timeoutMs: 12000 }); return }
+  try { await $.prompt.submit({ text: skill, asUser: true }) } catch { $.ui.toast(`lets: could not start ${skill} (${why}); type it yourself`, { timeoutMs: 12000 }) }
+}
+
 /** The /lets-pane feed: every host's windows, the companion, the latest events. */
 async function poll($: EngineInterface): Promise<Feed> {
   const next: Feed = { ...EMPTY, checkedAt: Date.now() }
@@ -202,7 +218,7 @@ async function poll($: EngineInterface): Promise<Feed> {
 
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'lets', description: 'Open a lets unique (e.g. /lets graph, /lets graph native) — alias for /lets:lets' })
+    await $.command.register({ name: 'lets', description: 'Open a lets unique (e.g. /lets graph, /lets graph native) — alias for /lets:lets', argumentHint: '<unique> [web|native] [intent] | list | sessions | store <query> | entity | plan' })
     await $.command.register({ name: 'lets-pane', description: 'Show the lets pane: windows, companion mood, latest window events' })
     await $.command.register({ name: 'lets-native', description: 'List the lets native windows of this session; "show" places their panes (a pane opened by a poll may wait undrawn); "sync" polls the hosts now' })
     const started = await next(e)
@@ -245,23 +261,16 @@ export const register: Register = (on) => {
     }).catch(($, e, next) => next(e))      // whatever went wrong here, the tool's own result stands
   }
 
-  // the bare alias: the skill is submitted as a prompt of the person's own, so a turn runs it; a command's
-  // note alone starts no turn (a note left for the model is read at the next prompt, which may never come)
+  // the bare alias: `/lets <args>` runs the plugin's own command, `/lets:lets <args>`, as if the person had
+  // typed it (a plugin's command is namespaced `<plugin>:<name>`; a bare name is a mod's alone). A command's
+  // own text starts no turn, so the note this once left for Claude was read only at the next prompt; and from
+  // inside this hook the engine refuses `$.command.run` and `$.prompt.submit` alike (they would wait on the
+  // turn the hook holds), so the run starts from a clock tick, once this answer is out.
   on('command.run', { command: 'lets' }, async ($, e) => {
-    const args = (e.args || '').trim()
-    const skill = args ? `/lets:lets ${args}` : '/lets:lets list'
-    try {
-      await $.prompt.submit({ text: skill, asUser: true })
-      return { text: `lets → ${skill}` }
-    } catch {
-      return {
-        text: `lets → ${skill} (run it at your next prompt)`,
-        context: [
-          `The person ran "/lets ${args}". Run the lets skill now: invoke the Skill tool with skill "lets:lets" and args "${args || 'list'}". ` +
-          'If that skill is not available, tell them the lets plugin is not installed (/plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets).',
-        ],
-      }
-    }
+    const args = (e.args || '').trim() || 'list'
+    const skill = `/lets:lets ${args}`
+    $.clock.after(ALIAS_MS, () => startSkill($, args, skill))
+    return { text: `lets → ${skill}` }
   })
 
   on('command.run', { command: 'lets-pane' }, async ($) => {
