@@ -13,7 +13,7 @@
     },
     {
       "name": "lets-native",
-      "description": "Optional native touches (Claude Code 2.1.287+): a bare /lets alias and a live /lets-pane showing windows, the companion's mood and the latest window events.",
+      "description": "The lets-native mod (Claude Code 2.1.287+): a bare /lets alias, a live /lets-pane, and the native panes: /lets <unique> native draws a unique inside Claude Code's sidebar.",
       "source": "./mods/lets-native",
       "category": "productivity",
       "tags": ["lets", "pane", "mod"]

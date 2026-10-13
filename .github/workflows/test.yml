@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: node --test tests/unit.test.mjs
+      - run: node --test tests/unit.test.mjs tests/native.test.mjs
       - run: node tests/mcp-smoke.mjs
       - run: node tests/hook-drain.mjs
       - run: node engine/bin/lets.mjs validate

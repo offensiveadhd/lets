@@ -107,6 +107,8 @@ export class Store {
     return {
       ok: problems.length === 0, stage: udir, repo, sha: head, name: m.name, title: m.title, version: m.version, description: m.description,
       domains: m.domains, capabilities: m.capabilities, permissions: m.permissions || {}, files: files.length, problems,
+      // a native view runs inside the host (docs/NATIVE.md §8): the human must see that before confirming
+      modes: info.modes || [], native: !!m.native,
       verified: !!entry?.verified, manifestSha256: manifestSha,
     };
   }

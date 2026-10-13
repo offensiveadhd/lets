@@ -5,6 +5,12 @@
   "title": "Mini — test fixture",
   "description": "The smallest valid unique; used by the engine's tests.",
   "entry": "ui/index.html",
+  "native": {
+    "entry": "native/index.js",
+    "title": "mini (native)",
+    "columns": 40,
+    "rows": 20
+  },
   "guide": "GUIDE.md",
   "domains": [
     "mini"

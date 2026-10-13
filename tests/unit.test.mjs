@@ -221,6 +221,116 @@ test('entity: den edits — full, set, unlearn (memory by ts), secrets, reset', 
   assert.deepEqual(e2.profile.secrets, ['spin']);
 });
 
+test('schema: permissions.exec is accepted and validated', () => {
+  const schema = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'protocol/schemas/unique.schema.json'), 'utf8'));
+  const base = { lip: 1, name: 'xy', version: '0.1.0', title: 'x', entry: 'ui/index.html', domains: ['xy'] };
+  assert.equal(validate(schema, { ...base, permissions: { exec: ['python', 'javascript'] } }).ok, true);
+  assert.equal(validate(schema, { ...base, permissions: { exec: ['Python!'] } }).ok, false);
+  assert.equal(validate(schema, { ...base, permissions: { shell: true } }).ok, false, 'unknown permission keys are still rejected');
+});
+
+test('runner: consent persists per unique; config defaults; bad requests', async () => {
+  const { Runner } = await import('../engine/src/runner.mjs');
+  const r = new Runner();
+  assert.equal(r.enabled, true);
+  assert.equal(r.allowed('cocode'), false);
+  r.setAllowed('cocode', true);
+  assert.equal(r.allowed('cocode'), true);
+  assert.equal(new Runner().allowed('cocode'), true, 'read back from config.json');
+  r.setAllowed('cocode', false);
+  assert.equal(r.allowed('cocode'), false);
+  const cfg = JSON.parse(fs.readFileSync(path.join(process.env.LETS_HOME, 'config.json'), 'utf8'));
+  assert.deepEqual(cfg.runner.allow, {});
+  await assert.rejects(r.run({ lang: 'cobol', code: 'x' }), /unknown language/);
+  await assert.rejects(r.run({ lang: 'python', code: '   ' }), /empty/);
+});
+
+test('runner: javascript runs under the node permission model (fs confined, no children, timeout kills)', async () => {
+  const { Runner } = await import('../engine/src/runner.mjs');
+  const r = new Runner();
+  const langs = await r.languages();
+  if (!langs.javascript.ok) { console.log(`skip: ${langs.javascript.reason}`); return; }
+  const out = [];
+  const ok = await r.run({ lang: 'javascript', code: 'console.log("hi " + require("fs").readdirSync(".").length); console.error("warn")', onChunk: (c) => out.push(c) });
+  assert.equal(ok.exit, 0, out.map((c) => c.text).join(''));
+  assert.equal(ok.sandbox, 'node-permission');
+  assert.ok(out.some((c) => c.stream === 'stdout' && c.text.startsWith('hi ')), 'stdout streamed; the job folder is readable');
+  assert.ok(out.some((c) => c.stream === 'stderr' && c.text.includes('warn')));
+  const esm = await r.run({ lang: 'javascript', code: 'import os from "node:os"; console.log(typeof os.platform())' });
+  assert.equal(esm.exit, 0, 'import syntax picks an ESM file');
+  const errs = [];
+  const denied = await r.run({ lang: 'javascript', code: `require("fs").readdirSync(${JSON.stringify(os.homedir())})`, onChunk: (c) => errs.push(c) });
+  assert.notEqual(denied.exit, 0);
+  assert.ok(errs.some((c) => c.stream === 'stderr' && /ERR_ACCESS_DENIED|permission/i.test(c.text)), 'reading outside the job folder is refused');
+  const child = await r.run({ lang: 'javascript', code: 'require("child_process").execSync("echo x")' });
+  assert.notEqual(child.exit, 0, 'child processes are refused');
+  const slow = await r.run({ lang: 'javascript', code: 'for(;;){}', timeoutMs: 1000 });
+  assert.equal(slow.timedOut, true);
+  assert.equal(slow.killed, 'timeout');
+  assert.equal(slow.exit, null);
+});
+
+test('runner: python runs under the audit hook (job folder only, no sockets, no subprocesses)', async () => {
+  const { Runner } = await import('../engine/src/runner.mjs');
+  const r = new Runner();
+  const langs = await r.languages();
+  if (!langs.python.ok) { console.log(`skip: ${langs.python.reason}`); return; }
+  const text = (list) => list.map((c) => c.text).join('');
+  const out = [];
+  const ok = await r.run({ lang: 'python', code: 'import json, re, pathlib\nopen("a.txt", "w").write("x")\nprint("hi", open("a.txt").read())', onChunk: (c) => out.push(c) });
+  assert.equal(ok.exit, 0, text(out));
+  assert.equal(ok.sandbox, 'audit-hook');
+  assert.ok(out.some((c) => c.stream === 'stdout' && c.text.startsWith('hi x')), 'files inside the job folder work');
+  const outside = path.join(process.env.LETS_HOME, 'should-not-exist.txt');
+  const e1 = []; const w = await r.run({ lang: 'python', code: `open(${JSON.stringify(outside)}, "w").write("x")`, onChunk: (c) => e1.push(c) });
+  assert.notEqual(w.exit, 0);
+  assert.ok(!fs.existsSync(outside), 'no file written outside the job folder');
+  assert.ok(text(e1).includes('blocked by the lets sandbox: open'), text(e1));
+  const e2 = []; const s = await r.run({ lang: 'python', code: 'import socket\ns = socket.socket()\ns.connect(("127.0.0.1", 9))', onChunk: (c) => e2.push(c) });
+  assert.notEqual(s.exit, 0);
+  assert.ok(text(e2).includes('blocked by the lets sandbox: socket'), text(e2));
+  const e3 = []; const p = await r.run({ lang: 'python', code: 'import subprocess\nsubprocess.run(["echo", "x"])', onChunk: (c) => e3.push(c) });
+  assert.notEqual(p.exit, 0);
+  assert.ok(text(e3).includes('blocked by the lets sandbox: subprocess'), text(e3));
+  const e4 = []; const c = await r.run({ lang: 'python', code: 'import ctypes', onChunk: (x) => e4.push(x) });
+  assert.notEqual(c.exit, 0);
+  assert.ok(text(e4).includes('blocked by the lets sandbox: import ctypes'), text(e4));
+  const slow = await r.run({ lang: 'python', code: 'while True: pass', timeoutMs: 1000 });
+  assert.equal(slow.timedOut, true);
+  const sysexit = await r.run({ lang: 'python', code: 'import sys\nsys.exit(3)' });
+  assert.equal(sysexit.exit, 3);
+  // the escape an adversarial review found: a raw CreateProcess (a builtin module, so its import raises no
+  // audit event) spawned an unguarded child; default-deny now blocks the call itself
+  if (process.platform === 'win32') {
+    const e5 = []; const w32 = await r.run({ lang: 'python', code: 'import _winapi, sys\n_winapi.CreateProcess(None, sys.executable + " -c pass", None, None, 0, 0, None, None, None)', onChunk: (x) => e5.push(x) });
+    assert.notEqual(w32.exit, 0);
+    assert.ok(text(e5).includes('blocked by the lets sandbox: _winapi.CreateProcess'), text(e5));
+  } else {
+    const e5 = []; const fk = await r.run({ lang: 'python', code: 'import os\nos.fork()', onChunk: (x) => e5.push(x) });
+    assert.notEqual(fk.exit, 0);
+    assert.ok(text(e5).includes('blocked by the lets sandbox: os.fork'), text(e5));
+  }
+  // unknown events are denied (default-deny), known harmless ones pass
+  const e6 = []; const dd = await r.run({ lang: 'python', code: 'import sys\nsys.audit("lets.test.unknown")', onChunk: (x) => e6.push(x) });
+  assert.notEqual(dd.exit, 0);
+  assert.ok(text(e6).includes('blocked by the lets sandbox: lets.test.unknown'), text(e6));
+  const fine = await r.run({ lang: 'python', code: 'import json, re, math, datetime, collections, itertools, functools, pathlib, tempfile, sqlite3, hashlib, random, string, textwrap, dataclasses, typing, io, csv\nwith tempfile.NamedTemporaryFile("w", delete=False) as f: f.write("ok")\nc = sqlite3.connect(":memory:"); c.execute("create table t(x)")\nprint(json.dumps({"ok": True}))' });
+  assert.equal(fine.exit, 0, 'a normal stdlib program runs');
+});
+
+test('runner: the output cap is enforced before forwarding', async () => {
+  const { Runner, LIMITS } = await import('../engine/src/runner.mjs');
+  const r = new Runner();
+  const langs = await r.languages();
+  if (!langs.javascript.ok) { console.log(`skip: ${langs.javascript.reason}`); return; }
+  let got = 0; let capMsgs = 0;
+  const res = await r.run({ lang: 'javascript', code: 'const s = "A".repeat(65536); for (let i = 0; i < 60; i++) process.stdout.write(s);', onChunk: (c) => { if (c.stream === 'stdout') got += Buffer.byteLength(c.text); if (c.stream === 'system' && c.text.includes('output cap')) capMsgs++; } });
+  assert.equal(res.killed, 'output');
+  assert.ok(got <= LIMITS.outputBytes, `forwarded ${got} bytes`);
+  assert.equal(capMsgs, 1, 'the cap message appears once');
+  assert.ok(res.bytes <= LIMITS.outputBytes);
+});
+
 test('registry: a symlinked or junctioned unique folder is found', () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'lets-link-'));
   const target = path.join(PLUGIN_ROOT, 'tests', 'fixtures', 'uniques', 'mini');

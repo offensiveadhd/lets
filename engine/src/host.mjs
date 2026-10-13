@@ -10,7 +10,9 @@ import { DIRS, PLUGIN_ROOT, writeJson, isInside, ensureDirs } from './paths.mjs'
 import { rid, token as mkToken } from './ids.mjs';
 import { Bus } from './bus.mjs';
 import { Registry } from './registry.mjs';
+import { NativeRuntime } from './native.mjs';
 import { imageSize } from './imagesize.mjs';
+import { execList } from './runner.mjs';
 
 const VERSION = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'package.json'), 'utf8')).version;
 const MIME = {
@@ -21,17 +23,21 @@ const MIME = {
 };
 const MAX_UPLOAD = 25 * 1024 * 1024;
 const MAX_EVENT_BODY = 1024 * 1024;
+// ports fetch() and browsers refuse to connect to (the WHATWG fetch "bad ports" list, above 1023)
+const BAD_PORTS = new Set([1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]);
 const CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'";
 const redact = (u) => String(u).replace(/([?&#]t=)[^&#\s]+/g, '$1[redacted]');
 
 export class Host {
-  constructor({ log = () => {}, projectDir = process.cwd(), entity = null } = {}) {
+  constructor({ log = () => {}, projectDir = process.cwd(), entity = null, runner = null } = {}) {
     ensureDirs();
     this.log = log;
     this.token = mkToken();
     this.bus = new Bus({ log });
     this.registry = new Registry({ projectDir, log });
     this.entity = entity;          // Entity instance (optional); serves /lip/persona
+    this.runner = runner;          // Runner instance (optional); serves /lip/run* (docs/RUNNER.md)
+    this.native = new NativeRuntime({ bus: this.bus, registry: this.registry, entity, log });   // native windows (docs/NATIVE.md)
     this.server = null;
     this.port = 0;
     this.runFile = null;
@@ -46,10 +52,18 @@ export class Host {
       res.end('internal error');
     }));
     this.server.keepAliveTimeout = 65_000;
-    await new Promise((resolve, reject) => {
+    const listen = () => new Promise((resolve, reject) => {
+      this.server.removeAllListeners('error');        // a listener left from an earlier try never fires; do not stack them
       this.server.once('error', reject);
       this.server.listen(preferredPort, '127.0.0.1', resolve);
     });
+    await listen();
+    // a free port the OS hands out may be one browsers and fetch() refuse (the WHATWG "bad ports": 6000, 6665-6669, 10080, …);
+    // the mod, the prompt hook and the browser pane all reach the host through fetch, so pick another
+    for (let i = 0; i < 8 && !preferredPort && BAD_PORTS.has(this.server.address().port); i++) {
+      await new Promise((resolve) => this.server.close(resolve));
+      await listen();
+    }
     this.port = this.server.address().port;
     this.runFile = path.join(DIRS.run, `host-${process.pid}.json`);
     writeJson(this.runFile, { pid: process.pid, port: this.port, token: this.token, started: Date.now(), version: VERSION, cwd: process.cwd() });
@@ -61,8 +75,29 @@ export class Host {
 
   stop() {
     clearInterval(this._hb);
+    try { this.native.stop(); } catch { /* ignore */ }
     try { if (this.runFile) fs.unlinkSync(this.runFile); } catch { /* ignore */ }
     this.server?.close();
+  }
+
+  /**
+   * Opens a native window (a pane inside Claude Code, drawn by the lets-native
+   * mod) instead of a browser page. `queue` runs before the view attaches, so a
+   * restore command queued there is the first thing the view handles.
+   */
+  openNative(unique, { windowId = null, args = {}, queue = null } = {}) {
+    const w = (windowId ? String(windowId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) : '') || rid('w').slice(2, 14);
+    const fresh = !this.bus.windows.has(w);
+    this.bus.window(w, unique, 'native');
+    try {
+      if (typeof queue === 'function') queue(w);
+      const r = this.native.open(unique, { windowId: w, args });
+      this.opened.push({ windowId: w, unique, mode: 'native', at: Date.now() });
+      return r;
+    } catch (err) {
+      if (fresh) this.bus.drop(w);          // nothing attached: leave no ghost window behind
+      throw err;
+    }
   }
 
   get origin() { return `http://127.0.0.1:${this.port}`; }
@@ -106,6 +141,10 @@ export class Host {
       if (p === '/lip/persona' && req.method === 'GET') return this._json(res, 200, this.entity ? this.entity.personaForShell() : {});
       if (p === '/lip/entity' && req.method === 'GET') return this._json(res, 200, this.entity ? this.entity.full() : {});
       if (p === '/lip/windows' && req.method === 'GET') return this._json(res, 200, this.bus.windowList());
+      if (p === '/lip/run/info' && req.method === 'GET') return this._runInfo(res, url);
+      if (p === '/lip/run/consent' && req.method === 'POST') return this._runConsent(req, res, url);
+      if (p === '/lip/run' && req.method === 'POST') return this._run(req, res, url);
+      if (p.startsWith('/lip/native/')) return this._native(req, res, url, p.slice(12));
       return this._json(res, 404, { error: 'unknown lip endpoint' });
     }
 
@@ -161,7 +200,7 @@ export class Host {
     this.bus._write(res, { lip: 1, id: rid('cm'), ts: Date.now(), dir: 'down', from: 'host', type: 'session.listening', data: { on: this.bus.listening, at: Date.now() } });
     if (!win._announced) {
       win._announced = true;
-      this.bus.push({ lip: 1, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.opened', data: { windowId: w, unique } });
+      this.bus.push({ lip: 1, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.opened', data: { windowId: w, unique, mode: 'web' } });
     }
     req.on('close', () => this.bus.detach(w, res));
   }
@@ -231,11 +270,106 @@ export class Host {
     this._json(res, 200, { ...r, timedOut: waitMs > 0 && !got && r.events.length === 0, windows: this.bus.windowList() });
   }
 
+  // ---- the runner (docs/RUNNER.md) ---------------------------------------------
+
+  /** The window → its unique's manifest, or a 4xx. */
+  _runWindow(res, url) {
+    if (!this.runner) { this._json(res, 404, { error: 'unavailable', message: 'this engine has no runner' }); return null; }
+    const w = url.searchParams.get('w');
+    const win = w ? this.bus.windows.get(w) : null;
+    if (!win) { this._json(res, 404, { error: 'bad-request', message: 'unknown window (w)' }); return null; }
+    const u = this.registry.get(win.unique);
+    if (!u?.ok) { this._json(res, 404, { error: 'bad-request', message: `unknown unique "${win.unique}"` }); return null; }
+    return { w, unique: win.unique, manifest: u.manifest };
+  }
+
+  async _runInfo(res, url) {
+    const ctx = this._runWindow(res, url);
+    if (!ctx) return;
+    this._json(res, 200, await this.runner.info(ctx.unique, ctx.manifest));
+  }
+
+  async _runConsent(req, res, url) {
+    const ctx = this._runWindow(res, url);
+    if (!ctx) return;
+    if (!this.runner.enabled) return this._json(res, 403, { error: 'disabled', message: 'the runner is switched off in ~/.lets/config.json' });
+    let body;
+    try { body = JSON.parse(await readBody(req, 4096) || '{}'); } catch { return this._json(res, 400, { error: 'bad-request', message: 'bad json' }); }
+    const allowed = this.runner.setAllowed(ctx.unique, body?.allow === true);
+    this.bus.push({ lip: 1, id: rid('ev'), ts: Date.now(), dir: 'up', from: 'host', type: 'session.consent', data: { windowId: ctx.w, unique: ctx.unique, runner: allowed } });
+    this._json(res, 200, { allowed, unique: ctx.unique });
+  }
+
+  /** POST /lip/run: checks (enabled, window, manifest exec, consent, language, capacity), then streams NDJSON. */
+  async _run(req, res, url) {
+    const ctx = this._runWindow(res, url);
+    if (!ctx) return;
+    if (!this.runner.enabled) return this._json(res, 403, { error: 'disabled', message: 'the runner is switched off in ~/.lets/config.json' });
+    let body;
+    try { body = JSON.parse(await readBody(req, 4 * 1024 * 1024) || '{}'); } catch { return this._json(res, 400, { error: 'bad-request', message: 'bad json' }); }
+    const lang = String(body?.lang || '').toLowerCase();
+    if (!execList(ctx.manifest).includes(lang)) return this._json(res, 403, { error: 'not-declared', message: `${ctx.unique} does not declare permissions.exec for "${lang}"` });
+    if (!this.runner.allowed(ctx.unique)) return this._json(res, 403, { error: 'consent', message: `allow ${ctx.unique} to run programs on this machine first` });
+    const run = String(body?.run || rid('r')).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60) || rid('r');
+    let started = false;
+    const line = (obj) => { if (!started) { started = true; res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'x-accel-buffering': 'no' }); } res.write(JSON.stringify(obj) + '\n'); };
+    try {
+      const result = await this.runner.run({
+        lang, code: body?.code, stdin: typeof body?.stdin === 'string' ? body.stdin : '', timeoutMs: body?.timeoutMs, run,
+        onChunk: (c) => line({ run, stream: c.stream, text: c.text }),
+      });
+      line({ run, done: true, exit: result.exit, ms: result.ms, timedOut: result.timedOut, killed: result.killed, sandbox: result.sandbox, bytes: result.bytes });
+      res.end();
+    } catch (err) {
+      if (started) { line({ run, done: true, exit: null, error: err.code || 'error', message: err.message }); return res.end(); }
+      const status = err.code === 'busy' ? 429 : err.code === 'unavailable' ? 409 : 400;
+      this._json(res, status, { error: err.code || 'error', message: err.message });
+    }
+  }
+
   _drain(res, url) {
     const cursor = url.searchParams.get('cursor') || 'hook';
     const max = Math.min(Number(url.searchParams.get('max') || 50), 200);
     const r = this.bus.read(cursor, { max });
     this._json(res, 200, { ...r, windows: this.bus.windowList() });
+  }
+
+  /**
+   * Native windows, for the lets-native mod and the CLI (docs/NATIVE.md §6):
+   *   GET  /lip/native/sync?known=w1:3,w2:0&cols=&rows=   trees where the rev moved
+   *   POST /lip/native/action?w=   {key, kind, value?}      what the person did in the pane
+   *   POST /lip/native/close?w=    {reason}                 the person closed the pane
+   *   POST /lip/native/open        {unique, args?, windowId?}
+   *   GET  /lip/native/windows
+   */
+  async _native(req, res, url, sub) {
+    const w = url.searchParams.get('w') || '';
+    if (sub === 'sync' && req.method === 'GET') {
+      const known = {};
+      for (const part of String(url.searchParams.get('known') || '').split(',')) {
+        const i = part.lastIndexOf(':');
+        if (i > 0) known[part.slice(0, i)] = Number(part.slice(i + 1));
+      }
+      const viewports = {};                       // v=<id>:<cols>x<rows>,… : each pane's own size
+      for (const part of String(url.searchParams.get('v') || '').split(',')) {
+        const m = /^(.+):(\d+)x(\d+)$/.exec(part);
+        if (m) viewports[m[1]] = { cols: Number(m[2]), rows: Number(m[3]) };
+      }
+      return this._json(res, 200, this.native.sync({ known, viewports, cols: Number(url.searchParams.get('cols') || 0), rows: Number(url.searchParams.get('rows') || 0), modVersion: req.headers['x-lets-native'] || null }));
+    }
+    if (sub === 'windows' && req.method === 'GET') return this._json(res, 200, this.native.list());
+    if (req.method !== 'POST') return this._json(res, 405, { error: 'method' });
+    let body = {};
+    try { const raw = await readBody(req, MAX_EVENT_BODY); body = raw ? JSON.parse(raw) : {}; } catch { return this._json(res, 400, { error: 'bad json' }); }
+    if (sub === 'action') { if (!w) return this._json(res, 400, { error: 'w (window id) required' }); return this._json(res, 200, this.native.action(w, body)); }
+    if (sub === 'close') { if (!w) return this._json(res, 400, { error: 'w (window id) required' }); return this._json(res, 200, this.native.close(w, String(body.reason || 'person').slice(0, 40))); }
+    if (sub === 'open') {
+      const unique = String(body.unique || '');
+      this.registry.refresh();
+      try { return this._json(res, 200, this.openNative(unique, { windowId: body.windowId ? String(body.windowId).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 32) || null : null, args: body.args && typeof body.args === 'object' ? body.args : {} })); }
+      catch (err) { return this._json(res, 400, { error: String(err?.message || err) }); }
+    }
+    return this._json(res, 404, { error: 'unknown native endpoint' });
   }
 }
 

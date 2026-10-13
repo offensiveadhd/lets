@@ -24,6 +24,22 @@ lets repo.
   the chart, a full controller), and Claude can answer in Morse on a second
   track of the tape. Needs no engine change (lets >= 0.4.0).
 
+## Shipped in 0.7.0 (2026-10-13)
+
+- **Native windows: a unique as a pane inside Claude Code.** `/lets graph
+  native` opens the board in Claude Code's own sidebar instead of a browser
+  window; `/lets <unique> web` and `native` pick the mode, and a unique
+  implements one mode or both (`native.entry` in the manifest). The pane is
+  drawn by the optional **lets-native** mod 0.2.0 (`/plugin install
+  lets-native@lets`, Claude Code 2.1.287+). graph 0.4.0 is the first unique with
+  a native view; den and cocode stay web-only for now. Spec:
+  [NATIVE.md](NATIVE.md).
+- Engine: a `node:vm` runtime for native views (`engine/src/native.mjs`), the
+  `/lip/native/*` routes the mod uses, `mode` on the `open` tool and on
+  `session.opened`/`session.closed`, `modes` in the registry, and `lets native`
+  in the CLI. `query` now catches a reply that arrives inside the send, and the
+  host avoids the ports that `fetch()` and browsers refuse.
+
 ## Shipped in 0.6.0 (2026-10-13)
 
 - **den**, Doto's home, is the second default unique
@@ -84,8 +100,10 @@ lets repo.
 | P2 | [Public install path: zero-credential install on Windows, macOS and Linux](https://github.com/TikoTikTok/lets/issues/8) | docs, publish-readiness |
 | P2 | [CI: add macOS to the matrix and run claude plugin validate](https://github.com/TikoTikTok/lets/issues/10) | tests, publish-readiness |
 | P2 | [Resume into the current window (merge) and draw proposals in on resume](https://github.com/TikoTikTok/lets/issues/12) | sessions |
+| P2 | Native views in a separate process under Node's permission model (so a native view is no longer code in the host's own process) | security |
 | P3 | [Cap host.uploads / host.opened history and add an uploads quota](https://github.com/TikoTikTok/lets/issues/13) | — |
 | P3 | [CI: assert lets-unique-graph/schemas/unique.schema.json matches protocol/schemas](https://github.com/TikoTikTok/lets/issues/14) | — |
+| P3 | Native views for den and cocode | — |
 
 ### lets-store
 
@@ -119,6 +137,10 @@ in [COMMUNITY.md](COMMUNITY.md).
 
 - One origin and one token per host, shared by every unique and window. Uniques
   are trusted like editor extensions (SECURITY.md).
+- A native view runs in the host's own process, in a `node:vm` context, which
+  is isolation and not a security boundary; native-capable uniques are for
+  authors you trust (SECURITY.md). Native windows also do not outlive the host:
+  a new Claude Code session drops them (saved sessions stay).
 - The SSE stream carries the token in its URL (EventSource cannot set headers);
   the host redacts it from logs.
 - `/uploads/` is served without the token until the uploads issue lands.

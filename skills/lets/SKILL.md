@@ -1,8 +1,8 @@
 ---
 name: lets
-description: Open and drive a "unique" — an interactive window (graph board first) where the human talks to you graphically while chatting, with a companion entity that follows the cursor, suggests, learns the user and teaches itself special skills. Use for "/lets graph", "lets graph", "open the graph window", "show me this as a graph", "let me draw it for you", "continue the board", "bring back the graph", "lets resume", "/lets den", "open Doto's home", "show me what you learned about me", "open a chat view / image uploader in the window", "lets store", "lets plan", or whenever the human wants to point at things instead of typing them.
-argument-hint: "<unique> [args | resume [id]] | list | sessions | store <query> | entity | plan"
-allowed-tools: mcp__plugin_lets_lets__open mcp__plugin_lets_lets__listen mcp__plugin_lets_lets__send mcp__plugin_lets_lets__say mcp__plugin_lets_lets__query mcp__plugin_lets_lets__state mcp__plugin_lets_lets__uniques mcp__plugin_lets_lets__store mcp__plugin_lets_lets__entity mcp__plugin_lets_lets__plan mcp__plugin_lets_lets__sessions mcp__lets__open mcp__lets__listen mcp__lets__send mcp__lets__say mcp__lets__query mcp__lets__state mcp__lets__uniques mcp__lets__store mcp__lets__entity mcp__lets__plan mcp__lets__sessions mcp__Claude_Browser__preview_start mcp__Claude_Browser__navigate mcp__Claude_Browser__tabs_context mcp__Claude_Browser__tabs_close Read
+description: Open and drive a "unique" — an interactive window (graph board first) where the human talks to you graphically while chatting, with a companion entity that follows the cursor, suggests, learns the user and teaches itself special skills. Use for "/lets graph", "/lets graph native", "lets graph", "open the graph window", "show me this as a graph", "let me draw it for you", "continue the board", "bring back the graph", "lets resume", "/lets den", "open Doto's home", "show me what you learned about me", "open a chat view / image uploader in the window", "lets store", "lets plan", or whenever the human wants to point at things instead of typing them.
+argument-hint: "<unique> [web|native] [args | resume [id]] | list | sessions | store <query> | entity | plan"
+allowed-tools: mcp__plugin_lets_lets__open mcp__plugin_lets_lets__listen mcp__plugin_lets_lets__send mcp__plugin_lets_lets__say mcp__plugin_lets_lets__query mcp__plugin_lets_lets__state mcp__plugin_lets_lets__uniques mcp__plugin_lets_lets__store mcp__plugin_lets_lets__entity mcp__plugin_lets_lets__plan mcp__plugin_lets_lets__sessions mcp__plugin_lets_lets__run mcp__lets__open mcp__lets__listen mcp__lets__send mcp__lets__say mcp__lets__query mcp__lets__state mcp__lets__uniques mcp__lets__store mcp__lets__entity mcp__lets__plan mcp__lets__sessions mcp__lets__run mcp__Claude_Browser__preview_start mcp__Claude_Browser__navigate mcp__Claude_Browser__tabs_context mcp__Claude_Browser__tabs_close Read
 ---
 
 # lets — the engine that hosts uniques
@@ -27,8 +27,9 @@ improvise a transport.
 
 | `$0` | Do |
 |---|---|
-| a unique name (`graph`, `den`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). `resume` / `continue` / `last` / `back` as the first extra word (or a saved session's label in the words) → **Resume** (below). |
-| `list` | `lets.uniques {action:"list"}` → show name, title, source, problems. `{action:"defaults"}` installs the missing default uniques (graph, den). |
+| a unique name (`graph`, `den`, …) | **Open flow** below. Extra words after the name are the opening intent (e.g. `/lets graph plan the auth flow`). The word right after the name may be `web` or `native` (the mode); the rest is the intent. `resume` / `continue` / `last` / `back` as the first extra word (after the mode, if there is one; or a saved session's label in the words) → **Resume** (below). |
+| `cocode output [lang] <question>` | **Answer as code** (below): no window. The rest of the args is the question; a leading language name (`python`, `rust`, `pseudo`, `my-lang` …) picks the language. |
+| `list` | `lets.uniques {action:"list"}` → show name, title, modes (`web`, `native`), source, problems. `{action:"defaults"}` installs the missing default uniques (graph, den). |
 | `sessions` | `lets.sessions {action:"list"}` → show when, unique, label, summary; offer `/lets <unique> resume <id>`. |
 | `store …` | **Store flow**: `sync`, then `search` with the rest of the args; show results; install only after inspect + explicit yes. |
 | `entity` | `lets.entity {action:"brief"}` → tell the human who the companion is, what it learned, which special skills it has. `entity teach …` / `entity forget …` act on skills; `entity rename <name>` renames the companion. `full` returns everything he knows; `set` (persona, direct), `unlearn` (likes, dislikes, nicknames, memory lines by `ts`) and `reset` edit it — den's job, see below. |
@@ -37,13 +38,21 @@ improvise a transport.
 
 ## Open flow
 
-1. `lets.open {unique:"$0", args:{intent:"<rest of args>"}}` (add `resume` per
-   the Resume rules). The result has `url`, `windowId`, `guide` (the unique's
-   own instructions), `summary` (events/commands it speaks), `entity` (persona
-   + learned profile + skill index), `sessions` (the 5 most recent boards the
-   human sent to you from this unique: `id, at, label, summary`) and
-   `resumed` when a session was restored.
-2. **Show the window.** In the Claude desktop app call
+1. `lets.open {unique:"$0", args:{intent:"<rest of args>"}}` (add `mode:"web"`
+   or `mode:"native"` when the human gave one, and `resume` per the Resume
+   rules). The result has `mode`, `windowId`, `guide` (the unique's own
+   instructions), `summary` (events/commands it speaks, and the `modes` it
+   supports), `entity` (persona + learned profile + skill index), `sessions`
+   (the 5 most recent boards the human sent to you from this unique: `id, at,
+   label, summary`) and `resumed` when a session was restored. A web result
+   also has `url`; a native result has `title` and `native:{modSeen, howToOpen}`
+   instead.
+2. **Show the window.** If `mode` is `native` (or the result's `mode` is
+   `native`): there is no URL and nothing to open in a browser; the pane opens
+   in Claude Code by itself. If `native.modSeen` is false, say in the transcript
+   that the lets-native mod is not running (install:
+   `/plugin install lets-native@lets`, restart) and offer to open the web window
+   instead; do not wait for the pane. Otherwise, in the Claude desktop app call
    `mcp__Claude_Browser__preview_start {url}` (or `navigate` if a pane is open).
    If no browser tool exists, call `lets.open` again with `launch:"system"`
    and the same `windowId`. Never paste the URL as the only answer — the token
@@ -113,7 +122,8 @@ That is the human saying *"over to you, in the chat"*. So:
    `mcp__Claude_Browser__tabs_close {tabId}`. (The window tries to close itself
    first; browser panes often cannot, so you finish the job.) If the human
    pressed *Keep working* you will see `session.stay` — then stay in the loop
-   instead.
+   instead. A native pane shows its farewell card and closes itself; there is no
+   browser tab to close.
 3. **Answer in the transcript**, the way the unique's guide describes a
    review (for graph: the flow in a few lines, gaps, concrete proposals), and
    continue the conversation there. Offer to bring the board back
@@ -126,6 +136,10 @@ That is the human saying *"over to you, in the chat"*. So:
 `handoff` in the `open` result is `"close"` (default) or `"stay"`
 (`~/.lets/config.json` `"handoff": "stay"`); with `stay` the window remains
 and you review in the window as before.
+
+## Answer as code (`/lets cocode output` and the *Answer in code* button)
+
+The human wants to **read the whole answer as code**, nothing else. Reply with exactly one fenced code block in the chosen language (`pseudo` = their own dialect; with no language named, the chip or the newest cocode session's `lang`, else `python`). The code *is* the answer: its structure carries the content: types, records, enums, constants, functions, call sequences, branches for alternatives, asserts for facts, comments only where syntax cannot say it. It need not run. Never `print("the answer is …")` and never a string that holds the prose. No sentence before or after the block. For `/lets cocode output` with no question, answer the human's last question in the conversation this way; if there is none, ask for one in one line. The window's button arrives as `cocode.export {intent:"output", answer:{lang}}`: a handoff like any other (close the pane tab, answer in the transcript, label the session).
 
 ## Interaction rules (token discipline)
 
@@ -167,6 +181,18 @@ and you review in the window as before.
   `entity.react {name}` plays a short expression (`cheer`, `wink`, `nod`,
   `shake-no`, `sparkle`, …) — use it like punctuation, not a show.
 - Pasted images arrive as `media.image {path}` → `Read` the path, then react.
+- Native panes draw your `say`/`send` at the next poll (about a second); the
+  companion is a line under his name, chat is a block under the view,
+  components are cards; there is no pointer, so `entity.move` does nothing and
+  images cannot be pasted.
+- **Running a program** (cocode's `cocode.run`, or anything you want to try):
+  `lets.run {lang:"python"|"javascript"|"typescript", code, to:<windowId>, run:<id>, emit:"cocode.output"}`
+  runs it in the engine's sandbox (temp job folder, python audit hook or the
+  node permission model, 30 s and 1 MB limits) and streams the output to the
+  window in one call: no file writing, no shell. The window may have run the
+  build itself already (`cocode.ran`): then say one line about the result and
+  never run it again. Other languages still go through your own tools, with
+  the usual care.
 - When the human asks for something the window does not have ("open an image
   uploader", "give me sliders for the weights"), **compose it now** from the
   built-in component types (`component.create` with `note|options|slider|
@@ -206,10 +232,13 @@ quieter companion). Never fake learning you did not do.
 
 1. `lets.store {action:"sync"}` then `{action:"search", query}`.
 2. `lets.store {action:"inspect", name}` — show the human: title, version,
-   verified flag, permissions, capabilities, problems, repo + sha.
+   verified flag, permissions, capabilities, problems, repo + sha, and whether
+   it has a native view (`native: true`). A native view is a script the host
+   runs in a vm context, which is not a security boundary: say so, and only
+   suggest it for an author the human trusts.
 3. Only after an explicit yes: `{action:"install", name, confirm:true}`.
-   Then `/lets <name>`. Uniques are static web apps; the host never runs their
-   code server-side, but they do see what happens in their own window.
+   Then `/lets <name>`. Web uniques are static web apps; the host never runs
+   their code server-side, but they do see what happens in their own window.
 
 ## Reference
 

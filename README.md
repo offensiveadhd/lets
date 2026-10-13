@@ -30,7 +30,7 @@
 | Layer | What it does |
 |---|---|
 | **Engine** (`engine/`) | A zero-dependency Node MCP server. Hosts windows on loopback, carries the protocol, keeps the companion's memory and your saved sessions, routes multi-task work to the cheapest trustworthy model, installs community mediums from git. |
-| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP, each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. Two ship today: [graph](https://github.com/TikoTikTok/lets-unique-graph), the board, and [den](https://github.com/TikoTikTok/lets-unique-den), Doto's home. |
+| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP (optionally with a native view for Claude Code's sidebar), each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. Two ship today: [graph](https://github.com/TikoTikTok/lets-unique-graph), the board, and [den](https://github.com/TikoTikTok/lets-unique-den), Doto's home. |
 | **Shell + SDK** (`sdk/`) | What every unique gets for free: the companion (Doto), chat panel, runtime components (sliders, options, forms, image paste…), toasts, theme. |
 
 Everything crosses **LIP**, the *Lets Interaction Protocol* ([protocol/LIP.md](protocol/LIP.md)): typed JSON envelopes, up (human → Claude) and down (Claude → window). It is designed for mediums that do not exist yet; a unique for voice, AR or a haptic strip speaks the same envelope.
@@ -67,7 +67,7 @@ Options:
 | Flag | Does |
 |---|---|
 | `--local` | add the marketplace from this checkout instead of GitHub (edits are picked up on reinstall or update) |
-| `--native` | also install the optional `lets-native` mod (`/lets` and a live `/lets-pane`; Claude Code 2.1.287+) |
+| `--native` | also install the optional `lets-native` mod: `/lets`, `/lets-pane`, and the native panes of uniques that have one (Claude Code 2.1.287+) |
 | `--no-skill` | skip the personal `/lets` alias |
 | `--uninstall` | remove the plugins, the marketplace and the alias (your `~/.lets` stays) |
 
@@ -86,6 +86,8 @@ and `node engine/bin/lets.mjs install-skill` for the bare `/lets` alias. Update 
 |---|---|
 | `/lets graph [intent]` | open the board, optionally with a first thing to work on |
 | `/lets graph resume [id]` | open the board again with your last saved session (or the one with that id) |
+| `/lets <unique> native [intent]` | open the unique as a pane inside Claude Code instead of a browser window (needs the lets-native mod; see [A pane instead of a window](#a-pane-instead-of-a-window-native)) |
+| `/lets <unique> web [intent]` | open the browser window explicitly (what a bare `/lets <unique>` does when the unique has a page) |
 | `/lets sessions` | list your saved sessions: when, which unique, label, summary |
 | `/lets list` | the uniques this machine knows (and which are healthy) |
 | `/lets store <query>` | search the community store; install only after you inspect and say yes |
@@ -108,6 +110,16 @@ A session, start to finish:
 </p>
 
 Saved sessions live in `~/.lets/sessions/<unique>/<sessionId>.json` (board, label, summary, when). `/lets sessions` (or `node engine/bin/lets.mjs sessions` from a terminal) lists them. One window is one session: later sends and snapshots of the same window update the same file. If you would rather keep the window open after sending, set `"handoff": "stay"` in `~/.lets/config.json`; the default is `"close"`. If the browser refuses to close its own tab, the window keeps a hint and a **Keep working** button.
+
+### A pane instead of a window (native)
+
+New in 0.7.0. A unique can also open inside Claude Code itself, as a pane in its sidebar, with no browser. `/lets graph native plan the auth flow` opens the board that way and `/lets graph web …` opens the browser window; the word right after the unique's name picks the mode. Without it, a unique that has a page opens in the browser and one that only has a native view opens as a pane. Put `"mode": "native"` in `~/.lets/config.json` to make the pane the default for uniques that have both. graph 0.4.0 is the first unique with a native view; den and cocode are web-only for now.
+
+The pane is drawn by the optional **lets-native** mod, so install it once: `node install.mjs --native`, or `/plugin install lets-native@lets` inside Claude Code (2.1.287+), then restart. If Claude opens a native window and no mod has polled the host yet, it says so in the chat and offers the web window instead.
+
+The native graph is the board as one SVG picture, a list of its nodes with a button each, and inputs for the acts. Doto is a line at the top (his name and mood, his latest words beneath, his suggestions as buttons), the chat is a block under the view, and the components Claude composes (options, toggles, forms, a progress bar) are cards. The rest is the same as in the window: the same events and commands, the same `listen`, the same saved sessions. **Send to Claude** is still a handoff: the pane shows the farewell card and closes itself, and `/lets graph native resume` brings the board back.
+
+The limits: there is no pointer, so Doto does not follow a cursor, `entity.move` does nothing and screenshots cannot be pasted; when Claude changes something the pane redraws at the next poll, about a second later; and a native window does not survive a new Claude Code session (saved sessions do). A native view is a script that the lets host runs in a vm context, which is isolation and not a security boundary, so install uniques with a native view only from authors you trust ([SECURITY.md](SECURITY.md)). The spec is [docs/NATIVE.md](docs/NATIVE.md).
 
 ## Doto, the companion
 
@@ -247,6 +259,7 @@ my-unique/
   GUIDE.md      # how Claude should react to your events
   icon.svg
   ui/index.html # imports /sdk/lets-client.js and /sdk/lets-shell.js
+  native/index.js # optional: a view for Claude Code's sidebar (see docs/NATIVE.md)
 ```
 
 Start from the template repo **lets-unique-template**, run the host standalone while developing:
@@ -256,7 +269,11 @@ LETS_UNIQUES_DIRS=/path/to/parent node engine/bin/lets.mjs serve --open my-uniqu
 node engine/bin/lets.mjs validate ./my-unique
 ```
 
-Publish by pushing to GitHub and adding an entry to a store (`lets-store`). Users install with `/lets store my-unique` → inspect → confirm. Uniques are static and sandboxed by CSP; the host never executes their code. See [docs/UNIQUES.md](docs/UNIQUES.md), and [docs/COMMUNITY.md](docs/COMMUNITY.md) for how a unique goes from idea to the store (and, if it earns it, to the defaults).
+Publish by pushing to GitHub and adding an entry to a store (`lets-store`). Users install with `/lets store my-unique` → inspect → confirm. A web unique is static and sandboxed by CSP, and the host never runs it. If you also give it a native view (`native/index.js`, declared as `native.entry` in the manifest; the spec is [docs/NATIVE.md](docs/NATIVE.md)), that one script runs in a vm context inside the host, so people should install it only from an author they trust. See [docs/UNIQUES.md](docs/UNIQUES.md), and [docs/COMMUNITY.md](docs/COMMUNITY.md) for how a unique goes from idea to the store (and, if it earns it, to the defaults).
+
+### Run on your machine
+
+New in 0.7.0. When you press **Run** in a unique that holds a program (cocode is the example), the window asks the engine to run it, and the output streams back in milliseconds. The first time, the window shows a consent card, and nothing runs until you allow that unique on this machine. The code runs as you, in a throwaway job folder under `~/.lets/run/jobs/`, with a scrubbed environment, a 30 s limit and a 1 MB output cap. Python runs under an audit hook that blocks files outside the job folder, sockets and subprocesses; JavaScript and TypeScript run under Node's permission model, which blocks files outside the job folder and child processes but does not block the network. It is not a VM (CPU and memory are not capped), and other languages still go through Claude, which has a matching `run` tool. To turn the whole feature off, put `"runner": {"enabled": false}` in `~/.lets/config.json`. The details are in [docs/RUNNER.md](docs/RUNNER.md).
 
 ## Model routing
 
@@ -269,14 +286,16 @@ Publish by pushing to GitHub and adding an entry to a store (`lets-store`). User
 .mcp.json         registers the engine as MCP server "lets"
 skills/lets/      the /lets skill (SKILL.md + reference.md)
 hooks/            UserPromptSubmit hook: delivers window events with every prompt
-engine/           host, bus, registry, entity, router, store, MCP server
+engine/           host, bus, registry, entity, router, store, MCP server, and
+                  src/native.mjs (the native window runtime: vm contexts, trees, shell)
+mods/lets-native/ the optional Claude Code mod that draws native windows as panes
 sdk/              lets-client.js (transport), lets-shell.js/.css (Doto, chat, components)
 install.mjs       one-command installer (INSTALL.md is the agent-facing version)
 defaults.json     uniques installed on first use (graph, den)
 uniques/          bundled uniques (none; see uniques/README.md)
 tests/fixtures/   a minimal unique the tests run against
 protocol/         LIP.md + JSON schemas
-docs/             architecture, authoring, entity, UI contract, community
+docs/             architecture, authoring, native windows (NATIVE.md), entity, UI contract, community
 tests/            node --test
 .github/          issue forms, pull request template, CI
 ```
