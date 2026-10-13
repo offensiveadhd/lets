@@ -245,15 +245,22 @@ export const register: Register = (on) => {
     }).catch(($, e, next) => next(e))      // whatever went wrong here, the tool's own result stands
   }
 
+  // the bare alias: the skill is submitted as a prompt of the person's own, so a turn runs it; a command's
+  // note alone starts no turn (a note left for the model is read at the next prompt, which may never come)
   on('command.run', { command: 'lets' }, async ($, e) => {
     const args = (e.args || '').trim()
     const skill = args ? `/lets:lets ${args}` : '/lets:lets list'
-    return {
-      text: `lets → ${skill}`,
-      context: [
-        `The person ran "/lets ${args}". Run the lets skill now: invoke the Skill tool with skill "lets:lets" and args "${args || 'list'}". ` +
-        'If that skill is not available, tell them the lets plugin is not installed (/plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets).',
-      ],
+    try {
+      await $.prompt.submit({ text: skill, asUser: true })
+      return { text: `lets → ${skill}` }
+    } catch {
+      return {
+        text: `lets → ${skill} (run it at your next prompt)`,
+        context: [
+          `The person ran "/lets ${args}". Run the lets skill now: invoke the Skill tool with skill "lets:lets" and args "${args || 'list'}". ` +
+          'If that skill is not available, tell them the lets plugin is not installed (/plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets).',
+        ],
+      }
     }
   })
 

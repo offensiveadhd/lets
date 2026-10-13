@@ -6,7 +6,9 @@
   (Claude Code places an unasked pane only when the window is wide enough);
   the mod now toasts when that happens and `/lets-native show` places every
   native pane. `/lets-native` also says where each pane stands (shown, a tab,
-  waiting, none).
+  waiting, none). The bare `/lets <args>` alias now submits `/lets:lets <args>`
+  as a prompt of yours, so the skill runs at once; before, it only left a
+  note for Claude that nothing read until the next prompt.
 
 ## 0.7.0 — 2026-10-13
 
