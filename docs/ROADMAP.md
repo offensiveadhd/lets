@@ -15,6 +15,14 @@ lets repo.
   output, answers `??` lines inline, and reads *Send to Claude* as a question,
   a task, a bug, a review or a note. Needs no engine change (lets >= 0.4.0);
   a candidate for `defaults.json` once it has been used for a while.
+- **mors** 0.1.0, talk in Morse
+  ([lets-unique-mors](https://github.com/TikoTikTok/lets-unique-mors),
+  `/lets store mors`): one key, one tape. The human keys dots and dashes;
+  Send to Claude hands the message over as a prompt and Claude says what it
+  read, then does what it says. The window assumes the human knows Morse:
+  only Doto helps craft the message (read-back, a spelled ghost, a check,
+  the chart, a full controller), and Claude can answer in Morse on a second
+  track of the tape. Needs no engine change (lets >= 0.4.0).
 
 ## Shipped in 0.6.0 (2026-10-13)
 
