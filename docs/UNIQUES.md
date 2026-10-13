@@ -88,7 +88,10 @@ read its `CONTRACT.md`, `GUIDE.md` and `ui/graph.js` to see every part of the
 contract in use. **den** (https://github.com/TikoTikTok/lets-unique-den, Doto's
 home) is the other default and the one to read for a page-style unique: it
 fetches host state with `lets.get('/lip/entity')`, applies the human's edits
-optimistically and marks them pending until Claude confirms. Uniques listed in
+optimistically and marks them pending until Claude confirms. **cocode** (https://github.com/TikoTikTok/lets-unique-cocode) is a store unique
+to read for an editor-style window: a textarea over a highlighted layer, ghost
+suggestions streamed from Claude, a build-ahead pane and a handoff that carries
+runs and annotations. Uniques listed in
 the engine's `defaults.json` (graph and den today) are installed for everyone on
 first use; propose one there once it is solid.
 
