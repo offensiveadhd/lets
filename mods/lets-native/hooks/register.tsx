@@ -1,7 +1,7 @@
 /**
  * lets-native — the Claude Code side of lets, a mod (function hooks, Claude Code 2.1.287+).
  *
- *   /lets <args>          → the lets plugin's skill (/lets:lets <args>)
+ *   /lets <args>          → the lets plugin's skill (/lets:lets <args>), silently: no line of its own
  *   /lets-pane            → a live pane: hosts, windows, the companion's mood, the latest events
  *   /lets-native [sync]   → the native windows this session shows; `sync` polls the hosts now
  *   native panes          → one pane per native window the lets host holds (docs/NATIVE.md):
@@ -265,12 +265,15 @@ export const register: Register = (on) => {
   // typed it (a plugin's command is namespaced `<plugin>:<name>`; a bare name is a mod's alone). A command's
   // own text starts no turn, so the note this once left for Claude was read only at the next prompt; and from
   // inside this hook the engine refuses `$.command.run` and `$.prompt.submit` alike (they would wait on the
-  // turn the hook holds), so the run starts from a clock tick, once this answer is out.
+  // turn the hook holds), so the run starts from a clock tick, once this answer is out. The answer itself
+  // shows nothing: the skill's own run is the output, as if `/lets:lets <args>` had been typed (a forward
+  // line such as `lets → /lets:lets graph` read as a different command running, and was all one saw when
+  // nothing followed).
   on('command.run', { command: 'lets' }, async ($, e) => {
     const args = (e.args || '').trim() || 'list'
     const skill = `/lets:lets ${args}`
     $.clock.after(ALIAS_MS, () => startSkill($, args, skill))
-    return { text: `lets → ${skill}` }
+    return {}
   })
 
   on('command.run', { command: 'lets-pane' }, async ($) => {

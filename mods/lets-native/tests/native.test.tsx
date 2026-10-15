@@ -140,8 +140,9 @@ test('the lets open tool result opens the pane at once and marks that host as th
 })
 
 // The alias cannot start the skill from its own hook (the engine refuses a command run or a prompt from a
-// command.run hook: it would wait on the turn the hook holds), so it answers and starts it a tick later.
-test('/lets <args> answers at once and runs the plugin\'s own /lets:lets command a tick later; bare, it lists', async ($, on) => {
+// command.run hook: it would wait on the turn the hook holds), so it answers nothing and starts it a tick
+// later: the skill's run is the only output.
+test('/lets <args> prints nothing and runs the plugin\'s own /lets:lets command a tick later; bare, it lists', async ($, on) => {
   world(on, [])
   const clock = mock.clock(on)
   const ran: string[] = []
@@ -149,7 +150,7 @@ test('/lets <args> answers at once and runs the plugin\'s own /lets:lets command
   on('command.run', { command: 'lets:lets' }, (_$, e) => { ran.push(e.args); return { text: 'the skill ran' } })
   on('prompt.submit', (_$, e) => { prompts.push(e.text); return { text: e.text } })
   const r = await $.command.run({ command: 'lets', args: ' graph native plan the auth flow ', ...RUN })
-  expect(r?.text).toBe('lets → /lets:lets graph native plan the auth flow')
+  expect(r?.text).toBeUndefined()
   expect(r?.context).toBeUndefined()
   expect(ran).toEqual([])
   await clock.advance(60)
