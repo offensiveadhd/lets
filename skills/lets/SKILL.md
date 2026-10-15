@@ -199,7 +199,9 @@ The human wants to **read the whole answer as code**, nothing else. Reply with e
   search, a sub-agent, Hermes, Bash), in the program's order, send
   `cocode.output {stream:"reach", text:"→ ping google.com\n"}` before each
   one and the real result as stdout; never a function that prints what it
-  would have said. The unique's GUIDE.md has the table.
+  would have said. The window's list is a hint: in pseudo-code or an invented
+  language, read the program for reaches yourself (`pingen google`, `go to
+  https://…`) and treat them the same. The unique's GUIDE.md has the table.
 - When the human asks for something the window does not have ("open an image
   uploader", "give me sliders for the weights"), **compose it now** from the
   built-in component types (`component.create` with `note|options|slider|
