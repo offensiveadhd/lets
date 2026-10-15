@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- lets-native 0.2.1: a native pane the mod opens from a poll can wait undrawn
+  (Claude Code places an unasked pane only when the window is wide enough);
+  the mod now toasts when that happens and `/lets-native show` places every
+  native pane. `/lets-native` also says where each pane stands (shown, a tab,
+  waiting, none). The bare `/lets <args>` alias now really runs
+  `/lets:lets <args>`, the plugin's own command, a tick after its own answer,
+  and prints no line of its own (the engine refuses a command run or a prompt
+  from inside a command's hook, since either would wait on the turn that hook
+  holds; so `/lets graph` printed `lets-native: lets → /lets:lets graph`, which
+  read as the native mode running, and nothing followed). Where that run is
+  refused, the skill goes in as a prompt of yours; where the plugin is not
+  installed, a toast says how to install it. `/lets` also shows an argument
+  hint. A bare `/lets <unique>` still opens the web window when the unique has
+  one; `native` after the name, or `"mode": "native"` in `~/.lets/config.json`,
+  asks for the pane.
+
 ## 0.7.0 — 2026-10-13
 
 - **Native windows: a unique as a pane inside Claude Code.** A unique can now

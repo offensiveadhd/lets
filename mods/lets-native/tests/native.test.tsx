@@ -138,3 +138,28 @@ test('the lets open tool result opens the pane at once and marks that host as th
   expect(r?.text).toContain('lets-w-W4')
   expect(r?.text).not.toContain('W_OTHER')
 })
+
+// The alias cannot start the skill from its own hook (the engine refuses a command run or a prompt from a
+// command.run hook: it would wait on the turn the hook holds), so it answers nothing and starts it a tick
+// later: the skill's run is the only output.
+test('/lets <args> prints nothing and runs the plugin\'s own /lets:lets command a tick later; bare, it lists', async ($, on) => {
+  world(on, [])
+  const clock = mock.clock(on)
+  const ran: string[] = []
+  const prompts: string[] = []
+  on('command.run', { command: 'lets:lets' }, (_$, e) => { ran.push(e.args); return { text: 'the skill ran' } })
+  on('prompt.submit', (_$, e) => { prompts.push(e.text); return { text: e.text } })
+  const r = await $.command.run({ command: 'lets', args: ' graph native plan the auth flow ', ...RUN })
+  expect(r?.text).toBeUndefined()
+  expect(r?.context).toBeUndefined()
+  expect(ran).toEqual([])
+  await clock.advance(60)
+  expect(ran).toEqual(['graph native plan the auth flow'])
+  expect(prompts).toEqual([])
+  await $.command.run({ command: 'lets', args: '', ...RUN })
+  await clock.advance(60)
+  expect(ran).toEqual(['graph native plan the auth flow', 'list'])
+})
+
+// (The fallbacks, a prompt where the run is refused and a toast where the plugin is missing, are not driven
+// here: the kit never rejects a command run, since a run no hook answers resolves with that as its output.)
