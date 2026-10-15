@@ -192,7 +192,14 @@ The human wants to **read the whole answer as code**, nothing else. Reply with e
   window in one call: no file writing, no shell. The window may have run the
   build itself already (`cocode.ran`): then say one line about the result and
   never run it again. Other languages still go through your own tools, with
-  the usual care.
+  the usual care. A `cocode.run` with **`reach`** (cocode 0.3.0: lines like
+  `ping('google.com')`, `claude.browser(url)`, `research(topic)`, `$ cmd`)
+  is not a sandbox job: you are the interpreter. Perform each reach for real
+  with the matching tool (the real `ping`, the built-in browser pane, a web
+  search, a sub-agent, Hermes, Bash), in the program's order, send
+  `cocode.output {stream:"reach", text:"→ ping google.com\n"}` before each
+  one and the real result as stdout; never a function that prints what it
+  would have said. The unique's GUIDE.md has the table.
 - When the human asks for something the window does not have ("open an image
   uploader", "give me sliders for the weights"), **compose it now** from the
   built-in component types (`component.create` with `note|options|slider|
