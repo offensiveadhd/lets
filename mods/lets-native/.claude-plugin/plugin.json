@@ -1,6 +1,6 @@
 {
   "name": "lets-native",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The Claude Code side of lets: a bare /lets alias, a live /lets-pane, and the native panes: /lets <unique> native draws a unique (graph first) inside Claude Code's own sidebar, presses and all. Optional; needs the lets plugin 0.7.0+ and Claude Code 2.1.287+.",
   "author": { "name": "TikoTikTok", "url": "https://github.com/TikoTikTok" },
   "license": "MIT",

@@ -1,7 +1,7 @@
 /**
  * lets-native — the Claude Code side of lets, a mod (function hooks, Claude Code 2.1.287+).
  *
- *   /lets <args>          → the lets plugin's skill (/lets:lets <args>)
+ *   /lets <args>          → the lets plugin's skill (/lets:lets <args>), silently: no line of its own
  *   /lets-pane            → a live pane: hosts, windows, the companion's mood, the latest events
  *   /lets-native [sync]   → the native windows this session shows; `sync` polls the hosts now
  *   native panes          → one pane per native window the lets host holds (docs/NATIVE.md):
@@ -25,6 +25,7 @@ const PREFIX = 'lets-w-'
 const POLL_MS = 1200
 const IDLE_EVERY = 3                 // with no native window open, sync every third tick (~3.6 s)
 const FEED_EVERY = 4                 // the /lets-pane feed refreshes every fourth tick (~4.8 s)
+const ALIAS_MS = 50                  // /lets starts the skill this long after its own answer (the engine refuses it from the hook itself)
 const EMPTY: Feed = { hosts: [], events: [], mood: 'idle', name: 'Doto', checkedAt: 0 }
 const NONE: NativeState = { windows: {}, mine: [] }
 const feed = atom({ plugin: 'lets-native', key: 'feed' } as const, EMPTY)
@@ -106,7 +107,11 @@ async function sync($: EngineInterface): Promise<void> {
       else if (!st.windows[w.id]) opened.push(w)
     }
     await update($, native, (s) => ({ ...s, windows: next }))
-    for (const w of opened) await $.ui.open({ id: w.pane, title: w.title, columns: w.columns, rows: w.rows, focus: true })
+    for (const w of opened) {
+      // an open the mod makes on its own (a poll) may wait undrawn below the surface's width floor; one the person asks for is placed
+      const placed = await $.ui.open({ id: w.pane, title: w.title, columns: w.columns, rows: w.rows, focus: true })
+      if (!placed.isPlaced) $.ui.toast(`lets: the "${w.title}" pane is waiting (${placed.reason}); run /lets-native show to place it`, { timeoutMs: 8000 })
+    }
     for (const w of closed) { viewports.delete(w.pane); await $.ui.close({ id: w.pane }) }
   } finally {
     busy = false
@@ -169,6 +174,21 @@ function draw(table: Table, surface: string, node: Tree, on: (key: string, kind:
   }
 }
 
+/**
+ * Starts `/lets:lets <args>`, the lets plugin's own command, as if the person had typed it. Where the engine
+ * will not queue a command from here, the skill goes in as a prompt of theirs (the model then invokes it);
+ * failing both, a toast says so. Called from a clock tick, never from the `/lets` hook itself: from there the
+ * engine refuses both calls, since they would wait on the turn that hook is holding.
+ */
+async function startSkill($: EngineInterface, args: string, skill: string): Promise<void> {
+  let why: string
+  try { await $.command.run({ command: 'lets:lets', args }); return } catch (err) { why = String((err as Error)?.message || err) }
+  let installed = true
+  try { installed = (await $.command.list()).some((c) => c.name === 'lets:lets') } catch { /* the list is a courtesy */ }
+  if (!installed) { $.ui.toast('lets: the lets plugin is not installed here (no /lets:lets). /plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets, and restart Claude Code.', { timeoutMs: 12000 }); return }
+  try { await $.prompt.submit({ text: skill, asUser: true }) } catch { $.ui.toast(`lets: could not start ${skill} (${why}); type it yourself`, { timeoutMs: 12000 }) }
+}
+
 /** The /lets-pane feed: every host's windows, the companion, the latest events. */
 async function poll($: EngineInterface): Promise<Feed> {
   const next: Feed = { ...EMPTY, checkedAt: Date.now() }
@@ -198,9 +218,9 @@ async function poll($: EngineInterface): Promise<Feed> {
 
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'lets', description: 'Open a lets unique (e.g. /lets graph, /lets graph native) — alias for /lets:lets' })
+    await $.command.register({ name: 'lets', description: 'Open a lets unique (e.g. /lets graph, /lets graph native) — alias for /lets:lets', argumentHint: '<unique> [web|native] [intent] | list | sessions | store <query> | entity | plan' })
     await $.command.register({ name: 'lets-pane', description: 'Show the lets pane: windows, companion mood, latest window events' })
-    await $.command.register({ name: 'lets-native', description: 'List the lets native windows shown in this session; "sync" polls the hosts now' })
+    await $.command.register({ name: 'lets-native', description: 'List the lets native windows of this session; "show" places their panes (a pane opened by a poll may wait undrawn); "sync" polls the hosts now' })
     const started = await next(e)
     // panes a reload left behind: the engine keeps them, the module's state says which windows they show
     try {
@@ -241,16 +261,19 @@ export const register: Register = (on) => {
     }).catch(($, e, next) => next(e))      // whatever went wrong here, the tool's own result stands
   }
 
+  // the bare alias: `/lets <args>` runs the plugin's own command, `/lets:lets <args>`, as if the person had
+  // typed it (a plugin's command is namespaced `<plugin>:<name>`; a bare name is a mod's alone). A command's
+  // own text starts no turn, so the note this once left for Claude was read only at the next prompt; and from
+  // inside this hook the engine refuses `$.command.run` and `$.prompt.submit` alike (they would wait on the
+  // turn the hook holds), so the run starts from a clock tick, once this answer is out. The answer itself
+  // shows nothing: the skill's own run is the output, as if `/lets:lets <args>` had been typed (a forward
+  // line such as `lets → /lets:lets graph` read as a different command running, and was all one saw when
+  // nothing followed).
   on('command.run', { command: 'lets' }, async ($, e) => {
-    const args = (e.args || '').trim()
-    const skill = args ? `/lets:lets ${args}` : '/lets:lets list'
-    return {
-      text: `lets → ${skill}`,
-      context: [
-        `The person ran "/lets ${args}". Run the lets skill now: invoke the Skill tool with skill "lets:lets" and args "${args || 'list'}". ` +
-        'If that skill is not available, tell them the lets plugin is not installed (/plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets).',
-      ],
-    }
+    const args = (e.args || '').trim() || 'list'
+    const skill = `/lets:lets ${args}`
+    $.clock.after(ALIAS_MS, () => startSkill($, args, skill))
+    return {}
   })
 
   on('command.run', { command: 'lets-pane' }, async ($) => {
@@ -259,11 +282,24 @@ export const register: Register = (on) => {
   })
 
   on('command.run', { command: 'lets-native' }, async ($, e) => {
-    if (/\bsync\b/.test(e.args || '')) await sync($)
+    const args = e.args || ''
+    if (/\bsync\b/.test(args) || /\bshow\b/.test(args)) await sync($)
     const st = await read($, native)
     const list = Object.values(st.windows)
-    const lines = list.map((w) => `${w.pane}: ${w.unique} "${w.title}" on :${w.port}, rev ${w.rev}${w.tree ? '' : ' (no tree yet)'}`)
-    return { text: list.length ? `${list.length} native window(s):\n${lines.join('\n')}` : 'No lets native window is open. /lets graph native opens one (lets 0.7.0+).' }
+    const placed: string[] = []
+    if (/\bshow\b/.test(args)) {
+      // the person asked: these opens are placed at any width, and the first one takes the keyboard
+      for (const [i, w] of list.entries()) { const r = await $.ui.open({ id: w.pane, title: w.title, columns: w.columns, rows: w.rows, ...(i === 0 ? { focus: true as const } : {}) }); if (r.isPlaced) placed.push(w.pane) }
+    }
+    let panes: readonly { id: string; isPlaced: boolean; isShown: boolean }[] = []
+    try { panes = await $.ui.panes() } catch { /* none */ }
+    const lines = list.map((w) => {
+      const p = panes.find((x) => x.id === w.pane)
+      const where = !p ? 'no pane' : !p.isPlaced ? 'pane waiting (run /lets-native show)' : p.isShown ? 'shown' : 'a tab'
+      return `${w.pane}: ${w.unique} "${w.title}" on :${w.port}, rev ${w.rev}${w.tree ? '' : ', no tree yet'}; ${where}`
+    })
+    const head = list.length ? `${list.length} native window(s)${placed.length ? `, ${placed.length} pane(s) placed` : ''}:` : 'No lets native window is open. /lets graph native opens one (lets 0.7.0+).'
+    return { text: list.length ? `${head}\n${lines.join('\n')}` : head }
   })
 
   // the person closed a native pane: the host drops the window; closed by this mod: the host already knows
