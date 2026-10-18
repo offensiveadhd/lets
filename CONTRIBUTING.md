@@ -14,7 +14,7 @@ Open issues with the forms (blank issues are off):
   `token` value before pasting).
 - **Feature request**: for the engine, Doto, the SDK, the protocol or the install.
 - **Propose a unique for the defaults**: only for a unique that is already
-  verified in [lets-store](https://github.com/TikoTikTok/lets-store).
+  verified in [lets-store](https://github.com/offensiveadhd/lets-store).
 
 Pull requests get a template with a short checklist: zero dependencies kept,
 LIP additive, tests pass, docs updated, a CHANGELOG line.
@@ -52,8 +52,8 @@ Follow [docs/UNIQUES.md](docs/UNIQUES.md). Bundled uniques live in `uniques/`
 and must pass `node engine/bin/lets.mjs validate uniques/<name>`.
 
 Most new uniques do not belong in this repo. Build one from
-[lets-unique-template](https://github.com/TikoTikTok/lets-unique-template), send
-a pull request to [lets-store](https://github.com/TikoTikTok/lets-store), and,
+[lets-unique-template](https://github.com/offensiveadhd/lets-unique-template), send
+a pull request to [lets-store](https://github.com/offensiveadhd/lets-store), and,
 once it is verified there, you can propose it for `defaults.json` with the
 unique-proposal issue form. The whole path is in
 [docs/COMMUNITY.md](docs/COMMUNITY.md).

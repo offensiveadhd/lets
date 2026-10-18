@@ -8,12 +8,12 @@ Be kind to each other ([CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)). Report secu
 
 | Repo | What goes there |
 |---|---|
-| [lets](https://github.com/TikoTikTok/lets) | The engine, the Claude Code plugin and marketplace, the LIP protocol, the SDK and shell (Doto, chat, components), the installer, `defaults.json`. Bugs, feature ideas, protocol changes, default proposals. |
-| [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | The graph board, the first default unique. Board bugs and ideas. |
-| [lets-unique-den](https://github.com/TikoTikTok/lets-unique-den) | Doto's home, the second default unique: what the companion learned about you, with edit and forget by pointing. Bugs and ideas for what it shows and lets you change. |
-| [lets-unique-template](https://github.com/TikoTikTok/lets-unique-template) | The template repository for a new unique (`pulse`, a dial you talk through). Start here to build one. |
-| [lets-store](https://github.com/TikoTikTok/lets-store) | The community store: `index.json` of uniques by git URL, the validator, the contribution checklist. Pull requests for store entries. |
-| [lets-site](https://github.com/TikoTikTok/lets-site) | The website, published at https://tikotiktok.github.io/lets-site/. |
+| [lets](https://github.com/offensiveadhd/lets) | The engine, the Claude Code plugin and marketplace, the LIP protocol, the SDK and shell (Doto, chat, components), the installer, `defaults.json`. Bugs, feature ideas, protocol changes, default proposals. |
+| [lets-unique-graph](https://github.com/offensiveadhd/lets-unique-graph) | The graph board, the first default unique. Board bugs and ideas. |
+| [lets-unique-den](https://github.com/offensiveadhd/lets-unique-den) | Doto's home, the second default unique: what the companion learned about you, with edit and forget by pointing. Bugs and ideas for what it shows and lets you change. |
+| [lets-unique-template](https://github.com/offensiveadhd/lets-unique-template) | The template repository for a new unique (`pulse`, a dial you talk through). Start here to build one. |
+| [lets-store](https://github.com/offensiveadhd/lets-store) | The community store: `index.json` of uniques by git URL, the validator, the contribution checklist. Pull requests for store entries. |
+| [lets-site](https://github.com/offensiveadhd/lets-site) | The website, published at https://lets.offensiveadhd.com/. |
 
 ## Propose a unique
 
@@ -21,17 +21,17 @@ There are two destinations, and the second is much narrower than the first.
 
 **To make your unique available to anyone who looks for it** (the store):
 
-1. **Start from the template.** Use [lets-unique-template](https://github.com/TikoTikTok/lets-unique-template) ("Use this template"), name your repo `lets-unique-<name>`, and rename `pulse` everywhere (manifest `name`, `domains`, event and command types, `data-unique`, `Lets.connect`). [UNIQUES.md](UNIQUES.md) is the authoring guide.
+1. **Start from the template.** Use [lets-unique-template](https://github.com/offensiveadhd/lets-unique-template) ("Use this template"), name your repo `lets-unique-<name>`, and rename `pulse` everywhere (manifest `name`, `domains`, event and command types, `data-unique`, `Lets.connect`). [UNIQUES.md](UNIQUES.md) is the authoring guide.
 2. **Build and check it locally.** Run it on the host with `LETS_UNIQUES_DIRS=/path/to/parent node engine/bin/lets.mjs serve --open <name>` and validate with `node engine/bin/lets.mjs validate ./<name>`. Zero console errors is the bar. A unique is static: HTML, ES modules, CSS, no build step, no CDN, nothing executed server-side.
 3. **Push it to GitHub** (public, or a URL people can clone).
-4. **Open a pull request to [lets-store](https://github.com/TikoTikTok/lets-store)** adding an entry to `index.json`: `name`, `title`, a one-line `description`, `repo`, `ref`, ideally a pinned `sha` and `manifestSha256`, `tags`, `author`. Follow that repo's [CONTRIBUTING.md](https://github.com/TikoTikTok/lets-store/blob/main/CONTRIBUTING.md) checklist and run its validator (`npm run validate`). New entries land unverified.
-5. **Verification.** A maintainer re-checks the manifest at the pinned commit and, if everything holds, sets `"verified": true` in a follow-up commit. "Verified" means the manifest validates against the LIP schema, the unique is static-only, every event and command starts with a domain it owns (no reserved ones), and every permission it needs is declared. It is a review mark, not a cryptographic guarantee; pinning `sha` is what freezes the reviewed content. The policy is written down in the [lets-store README](https://github.com/TikoTikTok/lets-store#what-verified-means).
+4. **Open a pull request to [lets-store](https://github.com/offensiveadhd/lets-store)** adding an entry to `index.json`: `name`, `title`, a one-line `description`, `repo`, `ref`, ideally a pinned `sha` and `manifestSha256`, `tags`, `author`. Follow that repo's [CONTRIBUTING.md](https://github.com/offensiveadhd/lets-store/blob/main/CONTRIBUTING.md) checklist and run its validator (`npm run validate`). New entries land unverified.
+5. **Verification.** A maintainer re-checks the manifest at the pinned commit and, if everything holds, sets `"verified": true` in a follow-up commit. "Verified" means the manifest validates against the LIP schema, the unique is static-only, every event and command starts with a domain it owns (no reserved ones), and every permission it needs is declared. It is a review mark, not a cryptographic guarantee; pinning `sha` is what freezes the reviewed content. The policy is written down in the [lets-store README](https://github.com/offensiveadhd/lets-store#what-verified-means).
 
 People then install it with `/lets store <name>` (inspect, then confirm).
 
 **To ask for it to become a default** (`defaults.json`, installed for every user):
 
-6. **File the proposal.** Once your store entry is verified, open the [Propose a unique for the defaults](https://github.com/TikoTikTok/lets/issues/new?template=unique-proposal.yml) form. It asks for the name, repo, a one-liner, what the human does with it, the permissions it needs, the store entry, and why it should be a default.
+6. **File the proposal.** Once your store entry is verified, open the [Propose a unique for the defaults](https://github.com/offensiveadhd/lets/issues/new?template=unique-proposal.yml) form. It asks for the name, repo, a one-liner, what the human does with it, the permissions it needs, the store entry, and why it should be a default.
 7. **Discussion happens in that issue.** Defaults are installed on everyone's machine, so the bar is higher than for the store. What the maintainers weigh: it is store-verified, it is solid rather than a demo, its permissions are minimal (ideally none), its guide is short and clear, it adds a medium the defaults do not already cover, and someone is willing to maintain it.
 8. **If it is accepted,** a maintainer adds it to `defaults.json` in a pull request (the file is the approved list; the engine installs it from git on first use and still validates it).
 
@@ -58,4 +58,4 @@ In the open, in issues. Someone describes the problem first, the discussion happ
 - *Does it cost tokens?* Anything that reaches Claude must be compact and semantic; pointer moves and animations stay in the browser.
 - *Does it widen the security surface?* Loopback, the token, the CSP, confined uploads and "uniques are never executed" are not up for trade.
 
-Maintainers, for now: **TikoTikTok**.
+Maintainers, for now: **offensiveadhd**.

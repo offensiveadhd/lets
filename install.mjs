@@ -2,7 +2,7 @@
 /**
  * Install lets into this machine's Claude Code.
  *
- *   node install.mjs                 # marketplace from GitHub (TikoTikTok/lets) + plugin + bare /lets alias
+ *   node install.mjs                 # marketplace from GitHub (offensiveadhd/lets) + plugin + bare /lets alias
  *   node install.mjs --local         # marketplace from THIS checkout (edits are picked up on reinstall/update)
  *   node install.mjs --native        # also install the optional lets-native mod (/lets, /lets-pane and the native panes of uniques: /lets graph native; Claude Code 2.1.287+)
  *   node install.mjs --no-skill      # skip the personal /lets alias skill
@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const args = new Set(process.argv.slice(2));
 const MARKETPLACE = 'lets';
-const GITHUB = 'TikoTikTok/lets';
+const GITHUB = 'offensiveadhd/lets';
 const source = args.has('--local') ? root : GITHUB;
 const claude = process.platform === 'win32' ? 'claude.cmd' : 'claude';
 

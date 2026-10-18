@@ -62,11 +62,11 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement in one of two
 ways:
 
-* Open an issue in this repository (https://github.com/TikoTikTok/lets/issues)
+* Open an issue in this repository (https://github.com/offensiveadhd/lets/issues)
   for anything that is fine to discuss in public. Do not post private
   information about anyone in it.
 * For anything sensitive, contact the maintainer privately through the contact
-  options on their GitHub profile (https://github.com/TikoTikTok).
+  options on their GitHub profile (https://github.com/offensiveadhd).
 
 All complaints will be reviewed and investigated promptly and fairly.
 

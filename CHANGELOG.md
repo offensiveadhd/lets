@@ -171,12 +171,12 @@
 - `lets doctor` no longer prints host tokens.
 - Docs: INSTALL.md (for an agent to run), the copy-paste install prompt,
   CODE_OF_CONDUCT, SECURITY, issue forms, PR template, docs/COMMUNITY.md,
-  README rewrite; website at https://tikotiktok.github.io/lets-site/.
+  README rewrite; website at https://lets.offensiveadhd.com/.
 
 ## 0.3.0 — 2026-10-10
 
 - **Uniques are separate repositories.** `graph` moved to
-  https://github.com/TikoTikTok/lets-unique-graph (history preserved); the
+  https://github.com/offensiveadhd/lets-unique-graph (history preserved); the
   engine ships no unique.
 - **Default uniques.** `defaults.json` lists the mediums every install gets;
   the engine clones missing ones into `~/.lets/uniques` on first start, on

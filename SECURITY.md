@@ -19,7 +19,7 @@ claude plugin update lets@lets
 
 Please **do not open a public issue** for a security problem.
 
-Use GitHub's private vulnerability reporting: open the **Security** tab of this repository, choose **Report a vulnerability** (https://github.com/TikoTikTok/lets/security/advisories/new), and describe what you found. That creates a private security advisory visible only to you and the maintainer.
+Use GitHub's private vulnerability reporting: open the **Security** tab of this repository, choose **Report a vulnerability** (https://github.com/offensiveadhd/lets/security/advisories/new), and describe what you found. That creates a private security advisory visible only to you and the maintainer.
 
 Include, as far as you can:
 
@@ -32,7 +32,7 @@ We will acknowledge the report, keep you updated in the advisory, fix it, and pu
 
 ## The threat model, in short
 
-The full protocol is in [protocol/LIP.md](protocol/LIP.md) (section 4, Transport). The store's side is in the [lets-store README](https://github.com/TikoTikTok/lets-store#security-model-summary). The parts that matter for security:
+The full protocol is in [protocol/LIP.md](protocol/LIP.md) (section 4, Transport). The store's side is in the [lets-store README](https://github.com/offensiveadhd/lets-store#security-model-summary). The parts that matter for security:
 
 - **Loopback only.** The host listens on `127.0.0.1` on a free port. It is not reachable from the network.
 - **A per-host random token on every request.** It is accepted as the `t` query parameter, the `x-lets-token` header, or the window URL's fragment at open. It lives in `~/.lets/run/host-<pid>.json` (which the prompt hook reads) and in the window URL. Treat a window URL as a secret: do not paste or screenshot it.

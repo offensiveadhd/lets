@@ -2,7 +2,7 @@
   "$schema": "https://www.schemastore.org/claude-code-marketplace.json",
   "name": "lets",
   "description": "lets — talk to Claude through interactive windows: a graph board and the companion's home (den), the LIP protocol, and a store for community-made mediums.",
-  "owner": { "name": "TikoTikTok", "url": "https://github.com/TikoTikTok" },
+  "owner": { "name": "offensiveadhd", "url": "https://github.com/offensiveadhd" },
   "plugins": [
     {
       "name": "lets",

@@ -9,7 +9,7 @@ body:
         Ideas are welcome. Two quick routing notes:
 
         - **A new medium** (voice, a timeline, a canvas, whatever) is best built as a unique. If you want it in everyone's install, use the "Propose a unique" form instead.
-        - **An idea for the graph board itself** belongs in https://github.com/TikoTikTok/lets-unique-graph.
+        - **An idea for the graph board itself** belongs in https://github.com/offensiveadhd/lets-unique-graph.
   - type: textarea
     id: problem
     attributes:
