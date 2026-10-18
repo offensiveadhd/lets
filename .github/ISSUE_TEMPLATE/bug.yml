@@ -8,9 +8,9 @@ body:
       value: |
         Thanks for taking the time. A good report gets a fast fix.
 
-        **Security problem?** Do not file it here. Use a private advisory instead: https://github.com/TikoTikTok/lets/security/advisories/new (see SECURITY.md).
+        **Security problem?** Do not file it here. Use a private advisory instead: https://github.com/offensiveadhd/lets/security/advisories/new (see SECURITY.md).
 
-        **Bug in a unique?** If it only happens inside one unique's window and the engine looks fine, the unique's own repository is the better place (for graph: https://github.com/TikoTikTok/lets-unique-graph). If you are not sure, file it here.
+        **Bug in a unique?** If it only happens inside one unique's window and the engine looks fine, the unique's own repository is the better place (for graph: https://github.com/offensiveadhd/lets-unique-graph). If you are not sure, file it here.
   - type: textarea
     id: what-happened
     attributes:

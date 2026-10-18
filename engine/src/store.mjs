@@ -14,7 +14,7 @@ import { validate } from './validate.mjs';
 import { inspectUnique } from './registry.mjs';
 import { sha256 } from './ids.mjs';
 
-const DEFAULT_STORES = [{ name: 'lets-store', repo: 'https://github.com/TikoTikTok/lets-store.git' }];
+const DEFAULT_STORES = [{ name: 'lets-store', repo: 'https://github.com/offensiveadhd/lets-store.git' }];
 const NAME_RE = /^[a-z][a-z0-9-]{1,31}$/;
 const indexSchema = readJson(path.join(PLUGIN_ROOT, 'protocol', 'schemas', 'store-index.schema.json'));
 

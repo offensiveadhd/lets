@@ -3,7 +3,7 @@
 This file is for the agent (Claude Code) that will install `lets` on the human's machine. If you are the human: you pasted this prompt, and your agent is following the steps below.
 
 ```text
-Install the `lets` plugin for Claude Code on this machine: clone https://github.com/TikoTikTok/lets (use `gh repo clone TikoTikTok/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
+Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (use `gh repo clone offensiveadhd/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```
 
 `lets` is a Claude Code plugin: an engine (a zero-dependency Node MCP server), a `/lets` skill, and a companion called Doto, a small dot that does. Installing it needs no `npm install`, no build step and no admin rights. Everything it keeps lives under `~/.lets`.
@@ -25,9 +25,9 @@ Check each one. Every check is read-only.
 | Claude Code CLI | `claude --version` | Must be on `PATH`. The installer drives `claude plugin ...`. |
 | git | `git --version` | The engine clones default uniques with it. |
 | GitHub CLI, logged in | `gh --version` and `gh auth status` | Needed while the repo is private. If `gh auth status` says you are not logged in, stop and ask the human to run `gh auth login` in their own terminal, then continue. |
-| git can read the private repo | `gh auth setup-git` | Run it once. It lets plain `git` (and therefore `claude plugin marketplace add TikoTikTok/lets`) use the human's GitHub login. Safe to repeat. |
+| git can read the private repo | `gh auth setup-git` | Run it once. It lets plain `git` (and therefore `claude plugin marketplace add offensiveadhd/lets`) use the human's GitHub login. Safe to repeat. |
 
-Optional check that access works before you clone: `git ls-remote https://github.com/TikoTikTok/lets.git HEAD` should print a commit hash, not an authentication error.
+Optional check that access works before you clone: `git ls-remote https://github.com/offensiveadhd/lets.git HEAD` should print a commit hash, not an authentication error.
 
 ## Steps
 
@@ -41,7 +41,7 @@ bash / Git Bash / zsh:
 
 ```bash
 mkdir -p ~/proj
-gh repo clone TikoTikTok/lets ~/proj/lets
+gh repo clone offensiveadhd/lets ~/proj/lets
 cd ~/proj/lets
 ```
 
@@ -49,7 +49,7 @@ PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\proj" | Out-Null
-gh repo clone TikoTikTok/lets "$HOME\proj\lets"
+gh repo clone offensiveadhd/lets "$HOME\proj\lets"
 Set-Location "$HOME\proj\lets"
 ```
 
@@ -64,7 +64,7 @@ node install.mjs
 It prints each command it runs. In order, it:
 
 1. checks that the `claude` CLI answers `--version` (on Windows it goes through the `claude.cmd` shim by itself);
-2. adds the `lets` marketplace from GitHub (`claude plugin marketplace add TikoTikTok/lets`), or refreshes it if it is already added;
+2. adds the `lets` marketplace from GitHub (`claude plugin marketplace add offensiveadhd/lets`), or refreshes it if it is already added;
 3. installs the plugin at user scope (`claude plugin install lets@lets --scope user`), or updates it if it is already installed;
 4. installs the personal `/lets` alias skill into `~/.claude/skills/lets` (`node engine/bin/lets.mjs install-skill`), so the bare `/lets graph` works as well as `/lets:lets graph`;
 5. installs the default uniques listed in `defaults.json` into `~/.lets/uniques` (today: `graph` and `den`, via `node engine/bin/lets.mjs defaults`);
@@ -84,7 +84,7 @@ Options (use only if the human asked for them or a step below says so):
 By hand, inside Claude Code, the equivalent of steps 2 and 3 is:
 
 ```
-/plugin marketplace add TikoTikTok/lets
+/plugin marketplace add offensiveadhd/lets
 /plugin install lets@lets
 ```
 
@@ -118,7 +118,7 @@ Run these after the human has restarted (or after `/reload-plugins`).
 
 **`claude` is not found.** Install Claude Code first (https://code.claude.com), open a new terminal so `PATH` refreshes, and run `claude --version`. On Windows the npm global shim is `claude.cmd` in `%APPDATA%\npm`; make sure that folder is on `PATH`. The installer exits with "claude CLI not found on PATH" in this case and has changed nothing.
 
-**The marketplace cannot be added (private repo, authentication).** Run `gh auth status`, then `gh auth setup-git`, then retry `node install.mjs`. Check access with `git ls-remote https://github.com/TikoTikTok/lets.git HEAD`. If git itself works but `claude` still cannot reach GitHub, run `node install.mjs --local` from the checkout. If the human has no access to the repo at all, say so; do not look for another source.
+**The marketplace cannot be added (private repo, authentication).** Run `gh auth status`, then `gh auth setup-git`, then retry `node install.mjs`. Check access with `git ls-remote https://github.com/offensiveadhd/lets.git HEAD`. If git itself works but `claude` still cannot reach GitHub, run `node install.mjs --local` from the checkout. If the human has no access to the repo at all, say so; do not look for another source.
 
 **Windows notes.** PowerShell and Git Bash both work. The installer runs `claude` through a shell on Windows because it is a `.cmd` shim; you do not need to do anything for that. Quote paths that contain spaces. State is in `%USERPROFILE%\.lets` (`$HOME\.lets`).
 

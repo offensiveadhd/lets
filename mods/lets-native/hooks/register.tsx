@@ -185,7 +185,7 @@ async function startSkill($: EngineInterface, args: string, skill: string): Prom
   try { await $.command.run({ command: 'lets:lets', args }); return } catch (err) { why = String((err as Error)?.message || err) }
   let installed = true
   try { installed = (await $.command.list()).some((c) => c.name === 'lets:lets') } catch { /* the list is a courtesy */ }
-  if (!installed) { $.ui.toast('lets: the lets plugin is not installed here (no /lets:lets). /plugin marketplace add TikoTikTok/lets, then /plugin install lets@lets, and restart Claude Code.', { timeoutMs: 12000 }); return }
+  if (!installed) { $.ui.toast('lets: the lets plugin is not installed here (no /lets:lets). /plugin marketplace add offensiveadhd/lets, then /plugin install lets@lets, and restart Claude Code.', { timeoutMs: 12000 }); return }
   try { await $.prompt.submit({ text: skill, asUser: true }) } catch { $.ui.toast(`lets: could not start ${skill} (${why}); type it yourself`, { timeoutMs: 12000 }) }
 }
 

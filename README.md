@@ -30,7 +30,7 @@
 | Layer | What it does |
 |---|---|
 | **Engine** (`engine/`) | A zero-dependency Node MCP server. Hosts windows on loopback, carries the protocol, keeps the companion's memory and your saved sessions, routes multi-task work to the cheapest trustworthy model, installs community mediums from git. |
-| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP (optionally with a native view for Claude Code's sidebar), each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. Two ship today: [graph](https://github.com/TikoTikTok/lets-unique-graph), the board, and [den](https://github.com/TikoTikTok/lets-unique-den), Doto's home. |
+| **Uniques** (separate repos) | The interactive mediums: static web apps that speak LIP (optionally with a native view for Claude Code's sidebar), each in its own repository. The engine installs the **default** ones from [defaults.json](defaults.json) on first use. Two ship today: [graph](https://github.com/offensiveadhd/lets-unique-graph), the board, and [den](https://github.com/offensiveadhd/lets-unique-den), Doto's home. |
 | **Shell + SDK** (`sdk/`) | What every unique gets for free: the companion (Doto), chat panel, runtime components (sliders, options, forms, image paste…), toasts, theme. |
 
 Everything crosses **LIP**, the *Lets Interaction Protocol* ([protocol/LIP.md](protocol/LIP.md)): typed JSON envelopes, up (human → Claude) and down (Claude → window). It is designed for mediums that do not exist yet; a unique for voice, AR or a haptic strip speaks the same envelope.
@@ -44,7 +44,7 @@ Everything crosses **LIP**, the *Lets Interaction Protocol* ([protocol/LIP.md](p
 The easiest way: paste this into Claude Code and let it do the work. It follows [INSTALL.md](INSTALL.md), which is written for an agent.
 
 ```text
-Install the `lets` plugin for Claude Code on this machine: clone https://github.com/TikoTikTok/lets (use `gh repo clone TikoTikTok/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
+Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (use `gh repo clone offensiveadhd/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```
 
 ### Or one command, by hand
@@ -52,7 +52,7 @@ Install the `lets` plugin for Claude Code on this machine: clone https://github.
 Needs Node 18+, the `claude` CLI on PATH, and git credentials that can read the repo (`gh auth setup-git`):
 
 ```bash
-gh repo clone TikoTikTok/lets && cd lets && node install.mjs
+gh repo clone offensiveadhd/lets && cd lets && node install.mjs
 ```
 
 The installer adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, installs the default uniques (graph, den) into `~/.lets/uniques`, and installs a personal `/lets` alias. Restart the app or run `/reload-plugins` once, then both of these work in any session:
@@ -74,7 +74,7 @@ Options:
 ### By hand, inside Claude Code
 
 ```
-/plugin marketplace add TikoTikTok/lets
+/plugin marketplace add offensiveadhd/lets
 /plugin install lets@lets
 ```
 
@@ -236,18 +236,18 @@ The engine knows nothing about graphs. A unique is a repository with a manifest,
 
 | Unique | What you do with it | Repo | Default |
 |---|---|---|---|
-| `graph` | talk in diagrams: draw flows and ideas on a node/edge board while Claude and Doto read and edit the same graph | [lets-unique-graph](https://github.com/TikoTikTok/lets-unique-graph) | yes |
-| `den` | see what Doto learned about you and edit or forget any of it by pointing: persona, traits, likes, nicknames, memory lines, special skills, the secret moves you found | [lets-unique-den](https://github.com/TikoTikTok/lets-unique-den) | yes |
+| `graph` | talk in diagrams: draw flows and ideas on a node/edge board while Claude and Doto read and edit the same graph | [lets-unique-graph](https://github.com/offensiveadhd/lets-unique-graph) | yes |
+| `den` | see what Doto learned about you and edit or forget any of it by pointing: persona, traits, likes, nicknames, memory lines, special skills, the secret moves you found | [lets-unique-den](https://github.com/offensiveadhd/lets-unique-den) | yes |
 
 Also available (not default):
 
 | Unique | What you do with it | Repo | Install |
 |---|---|---|---|
-| `pulse` | a mood dial you talk through; the template unique, and the place to start your own | [lets-unique-template](https://github.com/TikoTikTok/lets-unique-template) | `/lets store pulse` |
+| `pulse` | a mood dial you talk through; the template unique, and the place to start your own | [lets-unique-template](https://github.com/offensiveadhd/lets-unique-template) | `/lets store pulse` |
 
-Everything else comes from the community store, [lets-store](https://github.com/TikoTikTok/lets-store), where candidates grow.
+Everything else comes from the community store, [lets-store](https://github.com/offensiveadhd/lets-store), where candidates grow.
 
-New entries in `defaults.json` are **proposed by issue**, using the [unique proposal form](https://github.com/TikoTikTok/lets/issues/new?template=unique-proposal.yml), and a unique must be **store-verified** first. The path is written down in [docs/COMMUNITY.md](docs/COMMUNITY.md).
+New entries in `defaults.json` are **proposed by issue**, using the [unique proposal form](https://github.com/offensiveadhd/lets/issues/new?template=unique-proposal.yml), and a unique must be **store-verified** first. The path is written down in [docs/COMMUNITY.md](docs/COMMUNITY.md).
 
 ## Build your own unique
 
@@ -321,11 +321,11 @@ State lives in `~/.lets/` (uploads, entity, sessions, router ledger, installed u
 
 ## Community
 
-Be kind: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Security issues go through a private advisory, not a public issue: [SECURITY.md](SECURITY.md). What comes next is in [docs/ROADMAP.md](docs/ROADMAP.md). Bugs, feature ideas and unique proposals have their own issue forms; [CONTRIBUTING.md](CONTRIBUTING.md) has the ground rules and [docs/COMMUNITY.md](docs/COMMUNITY.md) has the map of who does what. The website, with a place to poke Doto in the browser, lives at [tikotiktok.github.io/lets-site](https://tikotiktok.github.io/lets-site/).
+Be kind: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Security issues go through a private advisory, not a public issue: [SECURITY.md](SECURITY.md). What comes next is in [docs/ROADMAP.md](docs/ROADMAP.md). Bugs, feature ideas and unique proposals have their own issue forms; [CONTRIBUTING.md](CONTRIBUTING.md) has the ground rules and [docs/COMMUNITY.md](docs/COMMUNITY.md) has the map of who does what. The website, with a place to poke Doto in the browser, lives at [lets.offensiveadhd.com](https://lets.offensiveadhd.com/).
 
 ## License
 
-MIT © TikoTikTok
+MIT © offensiveadhd
 
 ---
 
@@ -334,5 +334,5 @@ MIT © TikoTikTok
 Paste this into Claude Code. It clones the repo, runs the installer and walks you through the rest (the repo is private while we test, so `gh` needs to be logged in).
 
 ```text
-Install the `lets` plugin for Claude Code on this machine: clone https://github.com/TikoTikTok/lets (use `gh repo clone TikoTikTok/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
+Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (use `gh repo clone offensiveadhd/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```

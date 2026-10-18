@@ -8,7 +8,7 @@ lets repo.
 ## In the store (2026-10-13)
 
 - **cocode** 0.1.0, talk in code
-  ([lets-unique-cocode](https://github.com/TikoTikTok/lets-unique-cocode),
+  ([lets-unique-cocode](https://github.com/offensiveadhd/lets-unique-cocode),
   `/lets store cocode`): an editor for any language, even one that does not
   exist. Claude predicts the next lines as a ghost the human accepts with Tab,
   prepares the real program in a Build pane so Run is instant, streams the
@@ -16,7 +16,7 @@ lets repo.
   a task, a bug, a review or a note. Needs no engine change (lets >= 0.4.0);
   a candidate for `defaults.json` once it has been used for a while.
 - **mors** 0.1.0, talk in Morse
-  ([lets-unique-mors](https://github.com/TikoTikTok/lets-unique-mors),
+  ([lets-unique-mors](https://github.com/offensiveadhd/lets-unique-mors),
   `/lets store mors`): one key, one tape. The human keys dots and dashes;
   Send to Claude hands the message over as a prompt and Claude says what it
   read, then does what it says. The window assumes the human knows Morse:
@@ -43,7 +43,7 @@ lets repo.
 ## Shipped in 0.6.0 (2026-10-13)
 
 - **den**, Doto's home, is the second default unique
-  ([lets-unique-den](https://github.com/TikoTikTok/lets-unique-den), installed
+  ([lets-unique-den](https://github.com/offensiveadhd/lets-unique-den), installed
   into `~/.lets/uniques/den` like graph and listed in `defaults.json`). It shows
   what the companion learned about the human (persona and the six traits as
   sliders, likes and dislikes, nicknames, memory lines, special skills, the
@@ -91,34 +91,34 @@ lets repo.
 
 | P | Issue | Labels |
 |---|---|---|
-| P1 | [Public launch checklist (umbrella)](https://github.com/TikoTikTok/lets/issues/2) | publish-readiness, docs |
-| P2 | [Require the token for /uploads/ and randomize upload filenames](https://github.com/TikoTikTok/lets/issues/3) | security |
-| P2 | [Keep the token out of query strings and logs](https://github.com/TikoTikTok/lets/issues/4) | security |
-| P2 | [Pin default uniques by sha in defaults.json and verify on install](https://github.com/TikoTikTok/lets/issues/5) | security, sessions |
-| P2 | [Gate store add_store behind confirm:true like install](https://github.com/TikoTikTok/lets/issues/6) | security |
-| P2 | [Tests for the security invariants](https://github.com/TikoTikTok/lets/issues/7) | tests, security |
-| P2 | [Public install path: zero-credential install on Windows, macOS and Linux](https://github.com/TikoTikTok/lets/issues/8) | docs, publish-readiness |
-| P2 | [CI: add macOS to the matrix and run claude plugin validate](https://github.com/TikoTikTok/lets/issues/10) | tests, publish-readiness |
-| P2 | [Resume into the current window (merge) and draw proposals in on resume](https://github.com/TikoTikTok/lets/issues/12) | sessions |
+| P1 | [Public launch checklist (umbrella)](https://github.com/offensiveadhd/lets/issues/2) | publish-readiness, docs |
+| P2 | [Require the token for /uploads/ and randomize upload filenames](https://github.com/offensiveadhd/lets/issues/3) | security |
+| P2 | [Keep the token out of query strings and logs](https://github.com/offensiveadhd/lets/issues/4) | security |
+| P2 | [Pin default uniques by sha in defaults.json and verify on install](https://github.com/offensiveadhd/lets/issues/5) | security, sessions |
+| P2 | [Gate store add_store behind confirm:true like install](https://github.com/offensiveadhd/lets/issues/6) | security |
+| P2 | [Tests for the security invariants](https://github.com/offensiveadhd/lets/issues/7) | tests, security |
+| P2 | [Public install path: zero-credential install on Windows, macOS and Linux](https://github.com/offensiveadhd/lets/issues/8) | docs, publish-readiness |
+| P2 | [CI: add macOS to the matrix and run claude plugin validate](https://github.com/offensiveadhd/lets/issues/10) | tests, publish-readiness |
+| P2 | [Resume into the current window (merge) and draw proposals in on resume](https://github.com/offensiveadhd/lets/issues/12) | sessions |
 | P2 | Native views in a separate process under Node's permission model (so a native view is no longer code in the host's own process) | security |
-| P3 | [Cap host.uploads / host.opened history and add an uploads quota](https://github.com/TikoTikTok/lets/issues/13) | — |
-| P3 | [CI: assert lets-unique-graph/schemas/unique.schema.json matches protocol/schemas](https://github.com/TikoTikTok/lets/issues/14) | — |
+| P3 | [Cap host.uploads / host.opened history and add an uploads quota](https://github.com/offensiveadhd/lets/issues/13) | — |
+| P3 | [CI: assert lets-unique-graph/schemas/unique.schema.json matches protocol/schemas](https://github.com/offensiveadhd/lets/issues/14) | — |
 | P3 | Native views for den and cocode | — |
 
 ### lets-store
 
 | P | Issue | Labels |
 |---|---|---|
-| P1 | [Pin index entries with sha + manifestSha256 and document the update policy](https://github.com/TikoTikTok/lets-store/issues/1) | security |
-| P2 | [Validator: enforce the engine patterns and a real ISO date](https://github.com/TikoTikTok/lets-store/issues/2) | tests |
-| P3 | [package.json metadata: license, author, repository, homepage](https://github.com/TikoTikTok/lets-store/issues/3) | docs |
+| P1 | [Pin index entries with sha + manifestSha256 and document the update policy](https://github.com/offensiveadhd/lets-store/issues/1) | security |
+| P2 | [Validator: enforce the engine patterns and a real ISO date](https://github.com/offensiveadhd/lets-store/issues/2) | tests |
+| P3 | [package.json metadata: license, author, repository, homepage](https://github.com/offensiveadhd/lets-store/issues/3) | docs |
 
 ### lets-unique-graph
 
 | P | Issue | Labels |
 |---|---|---|
-| P2 | [Version-sync guard: package.json, unique.json and CHANGELOG must agree](https://github.com/TikoTikTok/lets-unique-graph/issues/1) | tests |
-| P2 | [More board-driven expressions (sparkle on a quick 5-node chain, gasp on node removal)](https://github.com/TikoTikTok/lets-unique-graph/issues/2) | companion |
+| P2 | [Version-sync guard: package.json, unique.json and CHANGELOG must agree](https://github.com/offensiveadhd/lets-unique-graph/issues/1) | tests |
+| P2 | [More board-driven expressions (sparkle on a quick 5-node chain, gasp on node removal)](https://github.com/offensiveadhd/lets-unique-graph/issues/2) | companion |
 
 ### Proposed uniques
 
@@ -129,9 +129,9 @@ in [COMMUNITY.md](COMMUNITY.md).
 
 | P | Issue | Labels |
 |---|---|---|
-| P3 | [waves: a board for `/lets plan`, tasks as cards in wave columns with a model-tier chip; Run hands the plan to Claude](https://github.com/TikoTikTok/lets/issues/15) | unique-proposal |
-| P3 | [triage: a card stack for verdicts on findings, swipe yes / no / later](https://github.com/TikoTikTok/lets/issues/16) | unique-proposal |
-| P3 | [pins: paste a screenshot, drop numbered pins, one word per pin](https://github.com/TikoTikTok/lets/issues/17) | unique-proposal |
+| P3 | [waves: a board for `/lets plan`, tasks as cards in wave columns with a model-tier chip; Run hands the plan to Claude](https://github.com/offensiveadhd/lets/issues/15) | unique-proposal |
+| P3 | [triage: a card stack for verdicts on findings, swipe yes / no / later](https://github.com/offensiveadhd/lets/issues/16) | unique-proposal |
+| P3 | [pins: paste a screenshot, drop numbered pins, one word per pin](https://github.com/offensiveadhd/lets/issues/17) | unique-proposal |
 
 ## Accepted limits (for now)
 

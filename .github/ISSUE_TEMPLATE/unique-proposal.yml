@@ -8,8 +8,8 @@ body:
       value: |
         `defaults.json` is the approved list of uniques every installation gets. Today it holds two entries (`graph`, `den`). New entries are proposed here, and a unique must be **store-verified first**:
 
-        1. Build it from the template (https://github.com/TikoTikTok/lets-unique-template).
-        2. Open a PR to the store (https://github.com/TikoTikTok/lets-store) with its `index.json` entry.
+        1. Build it from the template (https://github.com/offensiveadhd/lets-unique-template).
+        2. Open a PR to the store (https://github.com/offensiveadhd/lets-store) with its `index.json` entry.
         3. A maintainer reviews it and sets `"verified": true`.
         4. Then file this form, and it is discussed for the defaults.
 
@@ -67,7 +67,7 @@ body:
     id: store-link
     attributes:
       label: Link to the store entry or PR
-      placeholder: "https://github.com/TikoTikTok/lets-store/pull/..."
+      placeholder: "https://github.com/offensiveadhd/lets-store/pull/..."
   - type: dropdown
     id: verified
     attributes:
