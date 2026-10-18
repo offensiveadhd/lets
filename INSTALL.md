@@ -3,7 +3,7 @@
 This file is for the agent (Claude Code) that will install `lets` on the human's machine. If you are the human: you pasted this prompt, and your agent is following the steps below.
 
 ```text
-Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (use `gh repo clone offensiveadhd/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
+Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (`git clone https://github.com/offensiveadhd/lets.git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```
 
 `lets` is a Claude Code plugin: an engine (a zero-dependency Node MCP server), a `/lets` skill, and a companion called Doto, a small dot that does. Installing it needs no `npm install`, no build step and no admin rights. Everything it keeps lives under `~/.lets`.
@@ -11,7 +11,7 @@ Install the `lets` plugin for Claude Code on this machine: clone https://github.
 ## Ground rules for you, the agent
 
 - Run the commands in this file and nothing else. If a step fails, quote the real output to the human, say which step failed, and stop. Do not improvise a workaround that edits Claude Code settings or hooks.
-- Never ask for, type or store credentials. If GitHub is not logged in, ask the human to run `gh auth login` themselves.
+- Never ask for, type or store credentials. The repos are public, so none are needed.
 - Ask the human a question only when something is ambiguous (for example, the target folder already exists and is not a lets checkout).
 - Do not push, commit or open issues. This is a read-and-install job.
 
@@ -24,10 +24,9 @@ Check each one. Every check is read-only.
 | Node 18 or newer | `node --version` | The installer and the engine are plain ES modules. |
 | Claude Code CLI | `claude --version` | Must be on `PATH`. The installer drives `claude plugin ...`. |
 | git | `git --version` | The engine clones default uniques with it. |
-| GitHub CLI, logged in | `gh --version` and `gh auth status` | Needed while the repo is private. If `gh auth status` says you are not logged in, stop and ask the human to run `gh auth login` in their own terminal, then continue. |
-| git can read the private repo | `gh auth setup-git` | Run it once. It lets plain `git` (and therefore `claude plugin marketplace add offensiveadhd/lets`) use the human's GitHub login. Safe to repeat. |
+| GitHub CLI (optional) | `gh --version` | Not required: the repos are public, so plain `git` clones them and `claude plugin marketplace add offensiveadhd/lets` needs no login. |
 
-Optional check that access works before you clone: `git ls-remote https://github.com/offensiveadhd/lets.git HEAD` should print a commit hash, not an authentication error.
+Optional check that GitHub is reachable before you clone: `git ls-remote https://github.com/offensiveadhd/lets.git HEAD` should print a commit hash.
 
 ## Steps
 
@@ -41,7 +40,7 @@ bash / Git Bash / zsh:
 
 ```bash
 mkdir -p ~/proj
-gh repo clone offensiveadhd/lets ~/proj/lets
+git clone https://github.com/offensiveadhd/lets.git ~/proj/lets
 cd ~/proj/lets
 ```
 
@@ -49,7 +48,7 @@ PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force "$HOME\proj" | Out-Null
-gh repo clone offensiveadhd/lets "$HOME\proj\lets"
+git clone https://github.com/offensiveadhd/lets.git "$HOME\proj\lets"
 Set-Location "$HOME\proj\lets"
 ```
 
@@ -97,7 +96,7 @@ You cannot restart Claude Code for them. Tell them, in this order:
 1. Restart Claude Code (or run `/reload-plugins`) so the plugin, the MCP server and the `/lets` alias are loaded.
 2. Then run `/lets graph`. That opens the board and Doto rolls up to greet them. (`/lets den` opens Doto's home, where they can see what he learns and edit or forget it.)
 
-Mention that the repo is private for now, that their saved boards and Doto's memory live in `~/.lets`, and that `/lets graph resume` brings a saved board back.
+Mention that their saved boards and Doto's memory live in `~/.lets`, and that `/lets graph resume` brings a saved board back.
 
 ## Verify
 
@@ -118,7 +117,7 @@ Run these after the human has restarted (or after `/reload-plugins`).
 
 **`claude` is not found.** Install Claude Code first (https://code.claude.com), open a new terminal so `PATH` refreshes, and run `claude --version`. On Windows the npm global shim is `claude.cmd` in `%APPDATA%\npm`; make sure that folder is on `PATH`. The installer exits with "claude CLI not found on PATH" in this case and has changed nothing.
 
-**The marketplace cannot be added (private repo, authentication).** Run `gh auth status`, then `gh auth setup-git`, then retry `node install.mjs`. Check access with `git ls-remote https://github.com/offensiveadhd/lets.git HEAD`. If git itself works but `claude` still cannot reach GitHub, run `node install.mjs --local` from the checkout. If the human has no access to the repo at all, say so; do not look for another source.
+**The marketplace cannot be added (git or network).** Check that git reaches GitHub with `git ls-remote https://github.com/offensiveadhd/lets.git HEAD`, then retry `node install.mjs`. If git itself works but `claude` still cannot reach GitHub, run `node install.mjs --local` from the checkout. If GitHub is unreachable from this machine, say so; do not look for another source.
 
 **Windows notes.** PowerShell and Git Bash both work. The installer runs `claude` through a shell on Windows because it is a `.cmd` shim; you do not need to do anything for that. Quote paths that contain spaces. State is in `%USERPROFILE%\.lets` (`$HOME\.lets`).
 

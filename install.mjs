@@ -9,7 +9,7 @@
  *   node install.mjs --uninstall     # remove plugin(s), marketplace and the alias skill
  *
  * Needs: node >= 18, the `claude` CLI on PATH, and (for the GitHub source) git
- * credentials that can read the private repo (`gh auth setup-git`).
+ * that can reach github.com (the repo is public, no login needed).
  * Nothing here touches ~/.lets (the companion's memory survives reinstalls).
  */
 import { spawnSync } from 'node:child_process';
@@ -57,7 +57,7 @@ if (args.has('--uninstall')) {
 step(`marketplace "${MARKETPLACE}" from ${source}`);
 const added = run(claude, ['plugin', 'marketplace', 'add', source], { ok: (o) => /already/i.test(o) });
 if (!added.ok) {
-  console.error('\nCould not add the marketplace. For the private GitHub source run `gh auth setup-git` first, or use `node install.mjs --local`.');
+  console.error('\nCould not add the marketplace. Check that git reaches github.com (`git ls-remote https://github.com/offensiveadhd/lets.git HEAD`), or use `node install.mjs --local`.');
   process.exit(1);
 }
 if (/already/i.test(added.out)) run(claude, ['plugin', 'marketplace', 'update', MARKETPLACE], { ok: () => true });

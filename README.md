@@ -37,22 +37,22 @@ Everything crosses **LIP**, the *Lets Interaction Protocol* ([protocol/LIP.md](p
 
 ## Install
 
-> The repo is **private while we test**. Anything that clones it needs GitHub credentials that can read it: log in with `gh auth login`, then run `gh auth setup-git`.
+> All lets repos are **public**: no GitHub login is needed to clone or install. Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Install with your agent
 
 The easiest way: paste this into Claude Code and let it do the work. It follows [INSTALL.md](INSTALL.md), which is written for an agent.
 
 ```text
-Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (use `gh repo clone offensiveadhd/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
+Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (`git clone https://github.com/offensiveadhd/lets.git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```
 
 ### Or one command, by hand
 
-Needs Node 18+, the `claude` CLI on PATH, and git credentials that can read the repo (`gh auth setup-git`):
+Needs Node 18+, the `claude` CLI on PATH, and git:
 
 ```bash
-gh repo clone offensiveadhd/lets && cd lets && node install.mjs
+git clone https://github.com/offensiveadhd/lets.git && cd lets && node install.mjs
 ```
 
 The installer adds the `lets` marketplace from GitHub, installs the `lets` plugin at user scope, installs the default uniques (graph, den) into `~/.lets/uniques`, and installs a personal `/lets` alias. Restart the app or run `/reload-plugins` once, then both of these work in any session:
@@ -331,8 +331,8 @@ MIT © offensiveadhd
 
 ## Install with your agent (copy this)
 
-Paste this into Claude Code. It clones the repo, runs the installer and walks you through the rest (the repo is private while we test, so `gh` needs to be logged in).
+Paste this into Claude Code. It clones the repo, runs the installer and walks you through the rest.
 
 ```text
-Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (use `gh repo clone offensiveadhd/lets` — it is private, so make sure `gh auth status` is logged in and run `gh auth setup-git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
+Install the `lets` plugin for Claude Code on this machine: clone https://github.com/offensiveadhd/lets (`git clone https://github.com/offensiveadhd/lets.git`), then run `node install.mjs` inside the clone and follow INSTALL.md in that repo. When done, tell me to restart Claude Code and show me `/lets graph`.
 ```
