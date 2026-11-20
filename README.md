@@ -1,13 +1,20 @@
-<p align="center">
-  <img src="assets/logo.svg" width="120" alt="lets">
-</p>
+<p align="center"><img src="assets/banner.svg" alt="lets: talk to Claude through windows, not just text. A Claude Code plugin that opens interactive windows, with a companion called Doto." width="100%"></p>
 
-<h1 align="center">lets</h1>
+<p align="center">
+  <a href="https://github.com/offensiveadhd/lets/actions/workflows/test.yml"><img src="https://github.com/offensiveadhd/lets/actions/workflows/test.yml/badge.svg" alt="test"></a>
+  <img src="https://img.shields.io/github/package-json/v/offensiveadhd/lets?color=a66bff&label=version" alt="version">
+  <img src="https://img.shields.io/badge/Claude%20Code-plugin-ff8fe0" alt="Claude Code plugin">
+  <img src="https://img.shields.io/badge/dependencies-0-6bf0ff" alt="zero dependencies">
+  <a href="https://lets.offensiveadhd.com/"><img src="https://img.shields.io/badge/site-lets.offensiveadhd.com-c49bff" alt="website: lets.offensiveadhd.com"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-5ef2a6" alt="License: MIT"></a>
+</p>
 
 <p align="center"><b>Talk to Claude through windows, not just text.</b><br>
 <code>/lets graph</code> opens a dark-violet board where you draw the thing you mean while you chat — and Doto, a small, bright dot that does, rolls up beside your cursor, suggests, learns you, and teaches himself new tricks.</p>
 
 <p align="center">
+  <a href="#see-it-run">See it run</a> ·
+  <a href="#what-it-is">How it works</a> ·
   <a href="#install">Install</a> ·
   <a href="#using-it">Using it</a> ·
   <a href="#doto-the-companion">Doto</a> ·
@@ -18,12 +25,19 @@
 
 ---
 
+## See it run
+
 <p align="center">
-  <img src="assets/screenshot-graph.jpg" width="640" alt="The graph board: an API gateway, an Auth service, a Users DB and a Token valid? decision with yes and no branches, a sticky note, and Doto beside the nodes saying what he just added">
-  <br><sub>The graph board after a short back-and-forth: two nodes drawn by hand, the rest added by Claude (a data node, a decision, an annotation, a tree layout).</sub>
+  <a href="assets/tour.mp4"><img src="assets/tour.gif" width="720" alt="A tour of five lets windows and the companion, a few seconds of each under a caption. graph: beside two nodes drawn by hand, Claude adds a decision, Token valid?, with a yes branch to Users DB and a no branch to Reject 401, and lays the board out. cocode: lines typed in an invented language, a cyan ghost of the next lines appears, Tab takes it, and the real Python program fills the Build pane. den: the chatty slider is dragged down, shows as pending, and settles when Claude applies it. mors: Tab keys the rest of a spelled word onto the tape as dots and dashes, and Claude answers in Morse on a magenta track. pulse: the mode wild is picked and Claude sweeps the dial up by itself. Doto: his face changes mood by mood, and he says 'On it.' and 'Done. Look.'"></a>
 </p>
 
+A tour of the windows, a few seconds of each, cut from real takes: every window is the unique's own page on a real lets host, driven by a headless browser. What Claude says and does in them is sent through the engine's own tools by a script written ahead, because a recording cannot wait on a live model; the captions are the only thing added. Select the picture for the [full-size video](assets/tour.mp4). How it was recorded, and how to record it again, is in [promo/](promo/).
+
 ## What it is
+
+<p align="center">
+  <img src="assets/how-it-works.svg" width="100%" alt="Three boxes in a row: your window (a unique plus the shell: Doto, chat, components), the lets engine (a zero-dependency Node host on loopback) and Claude in Claude Code. The window and the engine exchange LIP envelopes, POST up and Server-Sent Events down; the engine and Claude speak MCP over stdio. An event, graph.node.create, goes up and comes out of the listen tool. A command, graph.node.add, comes down from the send tool. Then the handoff: graph.export goes up, the engine saves the session and tells the window to close, and Claude answers in the Claude Code chat.">
+</p>
 
 `lets` is a Claude Code plugin with three layers:
 
@@ -105,8 +119,18 @@ A session, start to finish:
 6. Come back whenever you like. Say `continue the <label> board` (use whatever the session was labelled), or run `/lets graph resume`. Claude opens a fresh window and loads the saved board into it. `resume` means the last session; if you ask for something specific, Claude picks the saved session that matches, and asks you one short question if two do.
 
 <p align="center">
+  <img src="assets/screenshot-graph.jpg" width="640" alt="The graph board: an API gateway, an Auth service, a Users DB and a Token valid? decision with yes and no branches, a sticky note, and Doto beside the nodes saying what he just added">
+  <br><sub>Steps 1 to 3: the graph board after a short back-and-forth. Two nodes drawn by hand, the rest added by Claude (a data node, a decision, an annotation, a tree layout).</sub>
+</p>
+
+<p align="center">
+  <img src="assets/components.gif" width="720" alt="Two cards Claude composed beside the board: Backoff, with the options Fixed, Linear and Exponential, and Max attempts, a slider that stands at 2. Doto says 'Made two cards. Pick one.' The hand picks Exponential, the option lights up and Doto says 'Got it. Exponential.' The hand drags the slider to 5 and he says 'Set. Five tries.'">
+  <br><sub>Step 4: components Claude composes in the window while you work. Every change you make reaches Claude.</sub>
+</p>
+
+<p align="center">
   <img src="assets/screenshot-farewell.jpg" width="560" alt="The farewell card after Send to Claude: Sent. See you in Claude Code, This window is closing, a Keep working button, and Doto waving with a Bye. bubble">
-  <br><sub>The handoff: Doto waves, the card says where to find Claude, and the window closes itself.</sub>
+  <br><sub>Step 5, the handoff: Doto waves, the card says where to find Claude, and the window closes itself.</sub>
 </p>
 
 Saved sessions live in `~/.lets/sessions/<unique>/<sessionId>.json` (board, label, summary, when). `/lets sessions` (or `node engine/bin/lets.mjs sessions` from a terminal) lists them. One window is one session: later sends and snapshots of the same window update the same file. If you would rather keep the window open after sending, set `"handoff": "stay"` in `~/.lets/config.json`; the default is `"close"`. If the browser refuses to close its own tab, the window keeps a hint and a **Keep working** button.
@@ -123,12 +147,21 @@ The limits: there is no pointer, so Doto does not follow a cursor, `entity.move`
 
 ## Doto, the companion
 
+<p align="center">
+  <img src="assets/doto-moods.gif" width="560" alt="Doto, a small violet orb with two eyes, close up on an empty board. Claude sets his eight moods one after another: idle, happy, curious, thinking, busy, proud, sleepy, alert. His eyes, his mouth and the glow around him change with each, and on three of them he speaks in a bubble: 'Next?', 'On it.' and 'Done. Look.'">
+</p>
+
 Doto is a dot that does. He is the smallest mark you can put on a board, and the one everything else gets drawn from. He is Claude's presence inside the window: a small round dot of light that rolls up beside your cursor on a gentle spring and rolls aside whenever he would cover what you point at. Click him for suggestions. He would rather do the next thing than talk about it, so he does, then tells you. He counts things, ends his lines on a dot, and does more than he says. He learns how you work and teaches himself special skills, and [den](#how-it-learns) is where you see and edit what he learned. The name is a default; it is yours to change.
+
+<details>
+<summary>Doto in the shell demo: his click menu, the mood buttons, the event log</summary>
 
 <p align="center">
   <img src="assets/screenshot-companion.jpg" width="640" alt="Doto in the shell demo: his click menu next to the mood and chat buttons and the event log">
   <br><sub>Doto in the shell demo (<code>sdk/demo/</code>): his click menu, the mood buttons on the left, the event log on the right.</sub>
 </p>
+
+</details>
 
 ### How he talks
 
@@ -161,6 +194,10 @@ Eight moods, set by Claude (`entity.mood`) or carried by a speech bubble:
 | `alert` | look here; wide eyes and a pulsing aura |
 
 ### Expressions
+
+<p align="center">
+  <img src="assets/doto-expressions.gif" width="720" alt="The pointer comes to rest on Doto and he blushes, under a tooltip with his name and tagline. A click: he squishes, a heart floats up and his menu of suggestions opens; a click on the board closes it. The pointer shakes from side to side and he goes dizzy, with spiral eyes and a wobble. Last he winks, a reaction Claude plays.">
+</p>
 
 On top of the moods, Doto reacts to what you do with short animations (half a second to two and a half). They run in your browser, cost zero tokens, never block your input, skip the spins when your system asks for reduced motion, and have cooldowns so Doto never nags.
 
@@ -222,6 +259,10 @@ Claude drives the same through the `entity` tool: besides `brief`, `learn`, `tea
 
 ## Listening vs away
 
+<p align="center">
+  <img src="assets/listening.gif" width="720" alt="The chat panel beside the board. The dot in its header is green, and to 'Still with me?' Doto has answered 'Here. Listening.' Then the dot turns amber and the box says that Doto is away and that your message waits for your next Claude Code prompt. The hand types 'Add a retry step.' and sends it anyway, and a note at the bottom says Claude reads it with the next message in Claude Code. When Claude listens again the dot turns green, a Retry node appears on the board and the chat says 'Added Retry as a step.'">
+</p>
+
 While `/lets graph` runs, Claude stays in an attentive loop and the window shows a green dot: everything you do in the window (chat, Ask, Doto's menu, a pasted image) gets a reaction within seconds. When Claude is not in that loop the dot turns amber and the chat says *Doto is away*: your messages are kept and delivered with your next prompt in Claude Code.
 
 **Send to Claude** does not depend on the loop. The engine saves the board and closes the window itself, listening or not. If Claude is listening it answers in the Claude Code chat right away; if it is away, the export waits and arrives with your next prompt, and Claude answers there.
@@ -238,6 +279,19 @@ The engine knows nothing about graphs. A unique is a repository with a manifest,
 |---|---|---|---|
 | `graph` | talk in diagrams: draw flows and ideas on a node/edge board while Claude and Doto read and edit the same graph | [lets-unique-graph](https://github.com/offensiveadhd/lets-unique-graph) | yes |
 | `den` | see what Doto learned about you and edit or forget any of it by pointing: persona, traits, likes, nicknames, memory lines, special skills, the secret moves you found | [lets-unique-den](https://github.com/offensiveadhd/lets-unique-den) | yes |
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://github.com/offensiveadhd/lets-unique-graph"><img src="https://raw.githubusercontent.com/offensiveadhd/lets-unique-graph/main/assets/demo.gif" width="100%" alt="The graph window: a hand draws two nodes and connects them, Claude adds a decision with a yes and a no branch and lays the board out as a tree, answers a question about one node by adding a step and pinning a note, and the board is sent to Claude."></a><br>
+      <sub><b>graph</b>, recorded off the real window. The picture lives in <a href="https://github.com/offensiveadhd/lets-unique-graph">its repository</a>.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://github.com/offensiveadhd/lets-unique-den"><img src="https://raw.githubusercontent.com/offensiveadhd/lets-unique-den/main/assets/demo.gif" width="100%" alt="The den window: a trait slider is dragged down and shows as pending until Claude applies it, a stale memory line is forgotten the same way, and Claude answers 'What do you know about me?' in the chat while the memory lines it cites glow."></a><br>
+      <sub><b>den</b>, recorded off the real window. The picture lives in <a href="https://github.com/offensiveadhd/lets-unique-den">its repository</a>.</sub>
+    </td>
+  </tr>
+</table>
 
 Also available (not default):
 
@@ -297,6 +351,8 @@ tests/fixtures/   a minimal unique the tests run against
 protocol/         LIP.md + JSON schemas
 docs/             architecture, authoring, native windows (NATIVE.md), entity, UI contract, community
 tests/            node --test
+assets/           what this README shows: the banner, the diagram, the tour, Doto's GIFs, the logo
+promo/            how those animations are made: a recorder that drives the real windows (promo/README.md)
 .github/          issue forms, pull request template, CI
 ```
 
@@ -313,6 +369,7 @@ node engine/bin/lets.mjs events                           # drain what the human
 node engine/bin/lets.mjs doctor                           # what the engine sees: node, hosts, uniques
 claude plugin validate .
 claude --plugin-dir .                     # try the plugin in a session
+node promo/record.mjs && node promo/gifs.mjs && node promo/tour.mjs      # record the READMEs' animations again
 ```
 
 Tip for the app's browser pane: open the window URL once with its `#w=…&t=…` hash; a hash-only navigation does not reload the page, so after a host restart navigate elsewhere first.

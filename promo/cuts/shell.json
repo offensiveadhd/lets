@@ -1,0 +1,39 @@
+{
+  "footage": "shell",
+  "cuts": [
+    {
+      "to": [
+        "lets/assets/listening.gif"
+      ],
+      "from": "away-1.6",
+      "end": "answered+1.7",
+      "crop": [
+        386,
+        0,
+        888,
+        500
+      ],
+      "width": 720,
+      "fps": 10,
+      "maxKb": 600,
+      "colors": 112
+    },
+    {
+      "to": [
+        "lets/assets/components.gif"
+      ],
+      "from": "cards.shown-0.4",
+      "end": "slide.ack+1.8",
+      "crop": [
+        760,
+        60,
+        510,
+        380
+      ],
+      "width": 600,
+      "fps": 10,
+      "maxKb": 900,
+      "colors": 88
+    }
+  ]
+}

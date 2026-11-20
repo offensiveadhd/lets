@@ -1,0 +1,5 @@
+# what the recorder and the renderer leave behind; the cuts that matter are copied into the repos' assets/
+footage/
+out/
+node_modules/
+.hyperframes/
