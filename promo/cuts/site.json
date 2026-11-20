@@ -1,0 +1,73 @@
+{
+  "footage": "site",
+  "cuts": [
+    {
+      "what": "The landing page and the Uniques page: the hero and Doto's greeting, a boop, the scroll to the engine section; the install prompt copied; the Uniques page and one scroll.",
+      "to": [
+        "lets-site/assets/readme/site.gif"
+      ],
+      "segments": [
+        [
+          "landing",
+          "engine.read+0.2"
+        ],
+        [
+          "install-0.2",
+          "copied+1.1"
+        ],
+        [
+          "uniques",
+          "uniques.scrolled+1.1"
+        ]
+      ],
+      "width": 640,
+      "fps": 8,
+      "colors": 96,
+      "maxKb": 1500
+    },
+    {
+      "what": "Doto in the playground, cropped to the controls panel: he follows the pointer, wears three moods, waves, is booped, and answers a pick from his menu.",
+      "to": [
+        "lets-site/assets/readme/playground.gif"
+      ],
+      "segments": [
+        [
+          "follow-0.2",
+          "follow.done+0.2"
+        ],
+        [
+          "moods-0.2",
+          "moods.done"
+        ],
+        [
+          "react.wave-0.8",
+          "react.wave.done+0.2"
+        ],
+        [
+          "boop.reach-0.1",
+          "said+1.5"
+        ]
+      ],
+      "crop": [
+        96,
+        56,
+        708,
+        616
+      ],
+      "width": 640,
+      "fps": 10,
+      "maxKb": 1500,
+      "colors": 96
+    },
+    {
+      "what": "The whole take: landing, Uniques, Playground.",
+      "to": [
+        "lets-site/assets/readme/site.mp4"
+      ],
+      "width": 1280,
+      "fps": 20,
+      "crf": 38,
+      "maxKb": 1200
+    }
+  ]
+}

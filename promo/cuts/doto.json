@@ -1,0 +1,39 @@
+{
+  "footage": "doto",
+  "cuts": [
+    {
+      "to": [
+        "lets/assets/doto-moods.gif"
+      ],
+      "from": "mood.idle-0.3",
+      "end": "moods.end+0.4",
+      "crop": [
+        40,
+        100,
+        320,
+        180
+      ],
+      "width": 560,
+      "fps": 10,
+      "maxKb": 800,
+      "colors": 72
+    },
+    {
+      "to": [
+        "lets/assets/doto-expressions.gif"
+      ],
+      "from": "hover-1.4",
+      "end": "wink+1.5",
+      "crop": [
+        16,
+        62,
+        520,
+        292
+      ],
+      "width": 720,
+      "fps": 10,
+      "maxKb": 800,
+      "colors": 96
+    }
+  ]
+}

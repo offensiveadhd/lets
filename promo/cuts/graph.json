@@ -1,0 +1,87 @@
+{
+  "footage": "graph",
+  "cuts": [
+    {
+      "to": [
+        "lets-unique-graph/assets/demo.gif"
+      ],
+      "segments": [
+        [
+          "node1-2.1",
+          "node1+0.2"
+        ],
+        [
+          "connect.start-0.3",
+          "connected+0.6"
+        ],
+        [
+          "claude.start-0.1",
+          "doto.said+0.9"
+        ],
+        [
+          "answer.node-0.3",
+          "answer.done+0.8"
+        ],
+        [
+          "send-0.4",
+          "farewell.hint-0.1"
+        ]
+      ],
+      "width": 720,
+      "fps": 10,
+      "speed": 1.1,
+      "maxKb": 1800
+    },
+    {
+      "to": [
+        "lets-unique-graph/assets/draw.gif"
+      ],
+      "from": "draw.start+0.4",
+      "end": "connected+0.9",
+      "crop": [
+        110,
+        110,
+        640,
+        360
+      ],
+      "width": 720,
+      "fps": 10,
+      "speed": 1.3,
+      "maxKb": 900,
+      "dither": "none",
+      "colors": 96
+    },
+    {
+      "to": [
+        "lets-unique-graph/assets/ask.gif"
+      ],
+      "segments": [
+        [
+          "menu.open-0.5",
+          "ask.sent+0.4"
+        ],
+        [
+          "answer.start",
+          "answer.done+1.3"
+        ]
+      ],
+      "crop": [
+        330,
+        150,
+        950,
+        534
+      ],
+      "width": 720,
+      "fps": 10,
+      "maxKb": 900,
+      "dither": "none"
+    },
+    {
+      "to": [
+        "lets-unique-graph/assets/demo.mp4"
+      ],
+      "width": 1280,
+      "maxKb": 1200
+    }
+  ]
+}

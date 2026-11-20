@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" role="img" aria-labelledby="lb-t lb-d">
+<title id="lb-t">lets</title>
+<desc id="lb-d">lets: talk to Claude through windows, not just text. A graph window sits under Claude Code, with Doto, a violet orb, beside the pointer. The pointer joins two nodes, a cyan envelope typed graph.edge.create goes up to Claude, a magenta command typed graph.node.add comes back down, and a third node appears on the board.</desc>
+<style>text{font-family:Inter,"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif}.m{font-family:ui-monospace,"Cascadia Code",SFMono-Regular,Menlo,Consolas,monospace}</style>
+<defs>
+<radialGradient id="lb-bg" cx="70%" cy="40%" r="85%"><stop offset="0" stop-color="#2b1a52"/><stop offset="1" stop-color="#120b1f"/></radialGradient>
+<radialGradient id="lb-cy" cx="96%" cy="100%" r="42%"><stop offset="0" stop-color="#6bf0ff" stop-opacity=".13"/><stop offset="1" stop-color="#6bf0ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="lb-mg" cx="0%" cy="0%" r="48%"><stop offset="0" stop-color="#ff6bd6" stop-opacity=".12"/><stop offset="1" stop-color="#ff6bd6" stop-opacity="0"/></radialGradient>
+<radialGradient id="lb-orb" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#e3ccff"/><stop offset=".45" stop-color="#a66bff"/><stop offset="1" stop-color="#5a2fb0"/></radialGradient>
+<radialGradient id="lb-tile" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#2b1a52"/><stop offset="1" stop-color="#120b1f"/></radialGradient>
+<linearGradient id="lb-ink" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c49bff"/><stop offset="1" stop-color="#ff8fe0"/></linearGradient>
+<linearGradient id="lb-btn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b98aff"/><stop offset="1" stop-color="#8a4dff"/></linearGradient>
+<linearGradient id="lb-wm" gradientUnits="userSpaceOnUse" x1="0" y1="29" x2="0" y2="167"><stop offset="0" stop-color="#f8f4ff"/><stop offset="1" stop-color="#cdbbff"/></linearGradient>
+<filter id="lb-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="lb-soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="lb-wmg" x="-20%" y="-70%" width="140%" height="240%"><feGaussianBlur stdDeviation="6" result="b"/><feColorMatrix in="b" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 .34 0" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="lb-ghost" x="-20%" y="-90%" width="140%" height="280%"><feGaussianBlur stdDeviation="1.5"/></filter>
+<pattern id="lb-grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.3" fill="#5a44a0" fill-opacity=".42"/></pattern>
+</defs>
+<rect x="1" y="1" width="1278" height="398" rx="28" fill="url(#lb-bg)"/>
+<rect x="1" y="1" width="1278" height="398" rx="28" fill="url(#lb-cy)"/>
+<rect x="1" y="1" width="1278" height="398" rx="28" fill="url(#lb-mg)"/>
+<rect x="1" y="1" width="1278" height="398" rx="28" fill="url(#lb-grid)"/>
+<rect x="1" y="1" width="1278" height="398" rx="28" fill="none" stroke="#5a44a0" stroke-opacity=".65" stroke-width="2"/>
+<circle cx="79" cy="69" r="6" fill="url(#lb-orb)"/>
+<text class="m" x="96" y="75" font-size="18" letter-spacing=".6" fill="#a99cd0">engine · Claude Code plugin</text>
+<g transform="translate(72 101)"><g transform="translate(12 -34.8) scale(1.2)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"><g stroke="url(#lb-wm)" filter="url(#lb-wmg)"><path transform="translate(0 0)" d="M0 39V121"/><path transform="translate(28 0)" d="M0 89H64A32 32 0 1 0 54.6 111.6"/><path transform="translate(126 0)" d="M16 39V101a20 20 0 0 0 20 20h2M0 57H38"/><path transform="translate(192 0)" d="M39.2 63.8A21 16 0 1 0 22 89A21 16 0 1 1 4.8 114.2"/></g></g></g>
+<text x="72" y="289.4" font-size="33" font-weight="400" fill="#dcd0ff">Talk to Claude through <tspan fill="#c49bff" font-weight="600">windows</tspan>,</text>
+<text x="72" y="331.4" font-size="33" font-weight="400" fill="#dcd0ff">not just text.</text>
+<g transform="translate(676 44)">
+<!-- Claude Code -->
+<rect x="134" y="0" width="280" height="46" rx="23" fill="#1a1030" fill-opacity=".96" stroke="#5a44a0" stroke-width="1.8"><animate attributeName="stroke" dur="10s" repeatCount="indefinite" values="#5a44a0;#5a44a0;#6bf0ff;#5a44a0;#5a44a0;#ff6bd6;#5a44a0;#5a44a0" keyTimes="0;0.44;0.47;0.53;0.58;0.6;0.65;1"/></rect>
+<text x="258" y="30" font-size="20" font-weight="600" fill="#ece6ff" text-anchor="middle">Claude Code</text>
+<circle cx="344" cy="23" r="3.6" fill="#a66bff" opacity=".35"><animate attributeName="opacity" dur="10s" repeatCount="indefinite" values="0.35;0.35;1;0.35;0.35;1;0.35;0.35" keyTimes="0;0.49;0.51;0.535;0.55;0.57;0.595;1"/></circle><circle cx="358" cy="23" r="3.6" fill="#a66bff" opacity=".35"><animate attributeName="opacity" dur="10s" repeatCount="indefinite" values="0.35;0.35;1;0.35;0.35;1;0.35;0.35" keyTimes="0;0.508;0.528;0.553;0.568;0.588;0.613;1"/></circle><circle cx="372" cy="23" r="3.6" fill="#a66bff" opacity=".35"><animate attributeName="opacity" dur="10s" repeatCount="indefinite" values="0.35;0.35;1;0.35;0.35;1;0.35;0.35" keyTimes="0;0.526;0.546;0.571;0.586;0.606;0.631;1"/></circle>
+<!-- the two lanes -->
+<g fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M190 124V54" stroke="#6bf0ff" stroke-opacity=".45" stroke-dasharray="2 6"/><path d="M183 61l7-8 7 8" stroke="#6bf0ff" stroke-opacity=".85"/>
+<path d="M358 50V120" stroke="#ff6bd6" stroke-opacity=".45" stroke-dasharray="2 6"/><path d="M351 113l7 8 7-8" stroke="#ff6bd6" stroke-opacity=".85"/>
+</g>
+<text class="m" x="98" y="91.5" font-size="12.5" text-anchor="end" fill="#a99cd0">events up</text>
+<text class="m" x="446" y="91.5" font-size="12.5" fill="#a99cd0">commands down</text>
+<!-- the window -->
+<rect x="0" y="128" width="548" height="184" rx="18" fill="#170e2b" fill-opacity=".93" stroke="#5a44a0" stroke-opacity=".7" stroke-width="1.5"/>
+<rect x="2" y="166" width="544" height="144" fill="url(#lb-grid)"/>
+<circle cx="22" cy="146" r="4.5" fill="#5ef2a6"/>
+<text x="34" y="151" font-size="15" font-weight="700" fill="#ece6ff">graph</text>
+<g fill="none" stroke-width="1.6"><rect x="98" y="138.500" width="15" height="15" rx="4" stroke="#a66bff"/><rect x="124" y="138.500" width="15" height="15" rx="4" stroke="#6bf0ff"/><rect x="150" y="138.500" width="15" height="15" rx="7.5" stroke="#ff6bd6"/><rect x="176" y="138.500" width="15" height="15" rx="4" stroke="#5ef2a6"/></g>
+<rect x="424" y="134.500" width="110" height="23" rx="8" fill="url(#lb-btn)"/>
+<text x="479" y="150" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">Send to Claude</text>
+<path d="M1 165H547" stroke="#3a2a63" stroke-width="1.5"/>
+<path pathLength="100" d="M100 208L246 268" fill="none" stroke="#c49bff" stroke-width="2.4" stroke-dasharray="100 100"><animate attributeName="stroke-dashoffset" dur="10s" repeatCount="indefinite" values="0;0;100;100;0;0" keyTimes="0;0.1;0.14;0.225;0.315;1"/></path>
+<path pathLength="100" d="M246 268L436 214" fill="none" stroke="#c49bff" stroke-width="2.4" stroke-dasharray="100 100"><animate attributeName="stroke-dashoffset" dur="10s" repeatCount="indefinite" values="0;0;100;100;0;0" keyTimes="0;0.1;0.14;0.75;0.8;1"/></path>
+<g transform="translate(100 208)"><rect x="-52" y="-20" width="104" height="40" rx="11" fill="#1d1238" stroke="#6bf0ff" stroke-width="2"/><rect x="-23" y="-4.5" width="46" height="9" rx="4.5" fill="#ece6ff" fill-opacity=".85"/></g>
+<g transform="translate(246 268)"><rect x="-52" y="-20" width="104" height="40" rx="11" fill="#1d1238" stroke="#6bf0ff" stroke-width="2"/><rect x="-29" y="-4.5" width="58" height="9" rx="4.5" fill="#ece6ff" fill-opacity=".85"/></g>
+<g transform="translate(436 214)"><g><animateTransform attributeName="transform" type="scale" dur="10s" repeatCount="indefinite" values="1;1;0.5;0.5;1;1" keyTimes="0;0.14;0.145;0.74;0.775;1" calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1"/><animate attributeName="opacity" dur="10s" repeatCount="indefinite" values="1;1;0;0;1;1" keyTimes="0;0.1;0.14;0.74;0.765;1"/><rect x="-52" y="-20" width="104" height="40" rx="11" fill="#1d1238" stroke="#ff6bd6" stroke-width="2"/><rect x="-25" y="-4.5" width="50" height="9" rx="4.5" fill="#ece6ff" fill-opacity=".85"/></g></g>
+<!-- Doto, beside the pointer -->
+<g transform="translate(366 262)"><animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite" values="366 262;366 262;190 184;190 184;272 218;272 218;366 262;366 262;366 248;366 262;366 262" keyTimes="0;0.16;0.225;0.24;0.33;0.345;0.42;0.755;0.775;0.795;1" calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1"/><g filter="url(#lb-glow)"><circle r="20" fill="url(#lb-orb)"/></g><circle cx="-6.15" cy="-6.92" r="5" fill="#fff" fill-opacity=".75"/><ellipse cx="-6.92" cy="1.92" rx="3.27" ry="3.27" fill="#120b1f"><animate attributeName="ry" dur="5s" begin="0s" repeatCount="indefinite" values="3.27;3.27;0.48;3.27;3.27" keyTimes="0;.56;.58;.6;1"/></ellipse><ellipse cx="6.92" cy="1.92" rx="3.27" ry="3.27" fill="#120b1f"><animate attributeName="ry" dur="5s" begin="0s" repeatCount="indefinite" values="3.27;3.27;0.48;3.27;3.27" keyTimes="0;.56;.58;.6;1"/></ellipse></g>
+<g transform="translate(330 276)"><animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite" values="330 276;330 276;154 208;154 208;238 258;238 258;330 276;330 276" keyTimes="0;0.15;0.21;0.225;0.315;0.33;0.4;1" calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1"/><path transform="scale(0.82)" d="M0 0v30l8.2-7.4 5.8 12.9 5.2-2.3-5.6-12.6h10.9z" fill="#f6f2ff" stroke="#120b1f" stroke-width="2.2" stroke-linejoin="round"/></g>
+<!-- a typed envelope up, a command down -->
+<g transform="translate(190 87)"><animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite" values="190 87;190 87;190 130;190 130;190 24;190 24;190 87;190 87" keyTimes="0;0.14;0.145;0.34;0.475;0.495;0.5;1" calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1"/><animate attributeName="opacity" dur="10s" repeatCount="indefinite" values="1;1;0;0;1;1;0;0;1;1" keyTimes="0;0.1;0.14;0.34;0.36;0.445;0.475;0.86;0.9;1"/><rect x="-82" y="-14" width="164" height="28" rx="14" fill="#120b1f" fill-opacity=".96" stroke="#6bf0ff" stroke-width="1.6"/><text class="m" y="4.6" font-size="13.5" text-anchor="middle" fill="#6bf0ff">graph.edge.create</text></g>
+<g transform="translate(358 87)"><animateTransform attributeName="transform" type="translate" dur="10s" repeatCount="indefinite" values="358 87;358 87;358 24;358 24;358 130;358 130;358 87;358 87" keyTimes="0;0.14;0.145;0.6;0.735;0.755;0.76;1" calcMode="spline" keySplines=".4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1;.4 0 .2 1"/><animate attributeName="opacity" dur="10s" repeatCount="indefinite" values="1;1;0;0;1;1;0;0;1;1" keyTimes="0;0.1;0.14;0.6;0.62;0.705;0.735;0.86;0.9;1"/><rect x="-70" y="-14" width="140" height="28" rx="14" fill="#120b1f" fill-opacity=".96" stroke="#ff6bd6" stroke-width="1.6"/><text class="m" y="4.6" font-size="13.5" text-anchor="middle" fill="#ff6bd6">graph.node.add</text></g>
+</g>
+</svg>

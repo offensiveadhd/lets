@@ -1,0 +1,79 @@
+{
+  "footage": "mors",
+  "cuts": [
+    {
+      "to": [
+        "lets-unique-mors/assets/demo.gif"
+      ],
+      "segments": [
+        [
+          "key.start-0.4",
+          "key.done+0.5"
+        ],
+        [
+          "ghost.shown-0.3",
+          "ghost.shown+1.2"
+        ],
+        [
+          "ghost.key-0.3",
+          "play.done+0.6"
+        ],
+        [
+          "readback.on-0.2",
+          "readback.on+1.6"
+        ]
+      ],
+      "width": 720,
+      "fps": 12,
+      "maxKb": 1800
+    },
+    {
+      "to": [
+        "lets-unique-mors/assets/key.gif"
+      ],
+      "from": "key.start-0.6",
+      "end": "key.done+0.9",
+      "crop": [
+        0,
+        56,
+        836,
+        470
+      ],
+      "width": 720,
+      "fps": 12,
+      "maxKb": 900
+    },
+    {
+      "to": [
+        "lets-unique-mors/assets/reply.gif"
+      ],
+      "segments": [
+        [
+          "play.start-0.4",
+          "play.done+0.6"
+        ],
+        [
+          "readback.on-0.2",
+          "readback.on+1.6"
+        ]
+      ],
+      "crop": [
+        0,
+        56,
+        836,
+        510
+      ],
+      "width": 720,
+      "fps": 12,
+      "maxKb": 900
+    },
+    {
+      "to": [
+        "lets-unique-mors/assets/demo.mp4"
+      ],
+      "width": 1280,
+      "crf": 30,
+      "maxKb": 1200
+    }
+  ]
+}

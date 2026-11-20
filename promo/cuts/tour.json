@@ -1,0 +1,65 @@
+{
+  "gif": {
+    "to": "lets/assets/tour.gif",
+    "width": 720,
+    "fps": 10,
+    "colors": 112,
+    "maxKb": 2400
+  },
+  "mp4": {
+    "to": "lets/assets/tour.mp4",
+    "width": 1280,
+    "crf": 26,
+    "maxKb": 1800
+  },
+  "parts": [
+    {
+      "footage": "graph",
+      "from": "claude.start-0.4",
+      "end": "doto.said+1.2",
+      "name": "graph",
+      "caption": "Draw it. Claude draws with you."
+    },
+    {
+      "footage": "cocode",
+      "from": "reel.start+0.3",
+      "end": "build.ready+1.0",
+      "name": "cocode",
+      "caption": "Type in any language. Claude writes the next lines."
+    },
+    {
+      "footage": "den",
+      "from": "trait.grab-0.2",
+      "end": "trait.applied+1.6",
+      "name": "den",
+      "caption": "See what Doto learned. Edit it by pointing."
+    },
+    {
+      "footage": "mors",
+      "from": "ghost.tab-0.3",
+      "end": "play.done+0.5",
+      "name": "mors",
+      "caption": "Key it in Morse. Claude answers on the tape."
+    },
+    {
+      "footage": "pulse",
+      "from": "mode.start",
+      "end": "claude.set+1.8",
+      "name": "pulse",
+      "caption": "A dial you talk through, and the template for your own."
+    },
+    {
+      "footage": "doto",
+      "from": "mood.happy-0.2",
+      "end": "mood.proud+1.2",
+      "crop": [
+        0,
+        62,
+        480,
+        270
+      ],
+      "name": "Doto",
+      "caption": "Claude's presence in every window."
+    }
+  ]
+}
