@@ -1,0 +1,30 @@
+{
+  "footage": "den",
+  "cuts": [
+    {
+      "to": ["lets-unique-den/assets/demo.gif"],
+      "segments": [
+        ["trait.grab-0.3", "trait.applied+1.5"],
+        ["memory.pending-1.6", "memory.applied+1.4"],
+        ["ask.picked+0.6", "ask.cited+1.6"]
+      ],
+      "width": 720, "fps": 12, "maxKb": 1800
+    },
+    {
+      "to": ["lets-unique-den/assets/forget.gif"],
+      "from": "memory.point+0.2", "end": "memory.done-0.3",
+      "crop": [190, 62, 900, 450],
+      "width": 720, "fps": 12, "maxKb": 900
+    },
+    {
+      "to": ["lets-unique-den/assets/rename.gif"],
+      "from": "name.edit-0.9", "end": "end-0.3",
+      "crop": [190, 66, 900, 268],
+      "width": 720, "fps": 12, "maxKb": 900
+    },
+    {
+      "to": ["lets-unique-den/assets/demo.mp4"],
+      "width": 1280, "crf": 30, "maxKb": 1200
+    }
+  ]
+}

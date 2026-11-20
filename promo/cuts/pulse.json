@@ -1,0 +1,63 @@
+{
+  "footage": "pulse",
+  "cuts": [
+    {
+      "to": [
+        "lets-unique-template/assets/demo.gif"
+      ],
+      "segments": [
+        [
+          "drag.start+0.3",
+          "value.said+1.2"
+        ],
+        [
+          "keys.start",
+          "keys.said+1.0"
+        ],
+        [
+          "mode.start+0.15",
+          "claude.set+2.0"
+        ],
+        [
+          "send.start+0.15",
+          "farewell+1.3"
+        ]
+      ],
+      "crop": [
+        400,
+        60,
+        780,
+        660
+      ],
+      "width": 600,
+      "fps": 10,
+      "maxKb": 1300,
+      "colors": 96
+    },
+    {
+      "to": [
+        "lets-unique-template/assets/handoff.gif"
+      ],
+      "from": "send.start+0.1",
+      "end": "resume.said+1.6",
+      "crop": [
+        400,
+        60,
+        780,
+        660
+      ],
+      "width": 600,
+      "fps": 10,
+      "maxKb": 700,
+      "colors": 96
+    },
+    {
+      "to": [
+        "lets-unique-template/assets/demo.mp4"
+      ],
+      "width": 1280,
+      "crf": 30,
+      "maxKb": 1200
+    }
+  ]
+}

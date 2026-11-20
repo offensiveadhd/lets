@@ -17,6 +17,15 @@
   hint. A bare `/lets <unique>` still opens the web window when the unique has
   one; `native` after the name, or `"mode": "native"` in `~/.lets/config.json`,
   asks for the pane.
+- Shell: Doto's click menu no longer shows the word `false` under its items.
+  When the menu had items and was done waiting, `renderMenu` handed a bare
+  `false` to `replaceChildren`, which draws it as text. Found while recording
+  the windows for the READMEs.
+- README: an animated banner, a tour of the windows cut from real takes, an
+  animated diagram of the three layers, and Doto's moods, expressions and
+  components as recordings. `promo/` holds the recorder that makes them: it
+  drives the real windows on a real host in a headless browser, with nothing
+  to install (`promo/README.md`).
 
 ## 0.7.0 — 2026-10-13
 
